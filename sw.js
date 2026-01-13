@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dfo-logbook-v1';
+const CACHE_NAME = 'dfo-logbook-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
