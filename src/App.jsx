@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Dexie from 'dexie';
+// import Dexie from 'dexie'; // <--- UNCOMMENT THIS FOR LOCAL USE
 import { 
   Crosshair, 
   MapPin, 
@@ -25,8 +25,45 @@ import {
 } from 'lucide-react';
 
 /**
+ * --- MOCK DEXIE (FOR PREVIEW ONLY) ---
+ * DELETE THIS ENTIRE SECTION AND UNCOMMENT THE IMPORT ABOVE FOR LOCAL USE
+ */
+class Dexie {
+  constructor(name) { this.name = name; }
+  version(n) { return this; }
+  stores(schema) { return this; }
+  get missions() { return new TableHandler('missions'); }
+  get settings() { return new TableHandler('settings'); }
+}
+class TableHandler {
+  constructor(name) { this.name = name; }
+  async _store(mode) {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('DFO_Drone_Log_DB', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('missions')) db.createObjectStore('missions', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+      };
+      req.onsuccess = e => resolve(e.target.result.transaction(this.name, mode).objectStore(this.name));
+      req.onerror = e => reject(e);
+    });
+  }
+  async toArray() { return (await this._store('readonly')).getAll().result || []; } // simplified
+  async put(item) { return (await this._store('readwrite')).put(item); }
+  async delete(id) { return (await this._store('readwrite')).delete(id); }
+  async get(key) { return (await this._store('readonly')).get(key).result; } // simplified
+  async bulkPut(items) { 
+    const store = await this._store('readwrite');
+    items.forEach(i => store.put(i));
+  }
+  async clear() { return (await this._store('readwrite')).clear(); }
+}
+/** --- END MOCK DEXIE --- */
+
+
+/**
  * --- DATABASE SETUP (DEXIE) ---
- * Real Dexie implementation for local/PWA use.
  */
 class DroneLogDatabase extends Dexie {
   constructor() {
@@ -149,7 +186,8 @@ const DEFAULT_LISTS = {
   pilots: ['Officer Smith', 'Officer Jones'],
   payload: ['Visual', 'Thermal', 'LiDAR'],
   observers: ['None'],
-  types: ['Training', 'Enforcement', 'Search & Rescue', 'Habitat Survey']
+  types: ['Training', 'Enforcement', 'Search & Rescue', 'Habitat Survey'],
+  locations: [] // Added for location dropdown support
 };
 
 const RISK_ITEMS = [
@@ -334,7 +372,13 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
   });
 
   const update = (k, v) => setFormData(prev => ({ ...prev, [k]: v }));
+  
   const handleGPS = () => getCoordinates((c) => setCoords(c));
+  
+  // Handle manual coordinate changes
+  const handleCoordChange = (field, value) => {
+    setCoords(prev => ({ ...prev, [field]: value }));
+  };
   
   const handleRiskChange = (riskName, field, value) => {
     setFormData(prev => {
@@ -357,9 +401,16 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       return;
     }
 
-    // Auto-add new list options
-    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'types'];
-    const fieldMap = { 'pilots': 'pilot', 'rpas': 'rpas', 'observers': 'observer', 'payload': 'payload', 'types': 'type' };
+    // Auto-add new list options, including newly added 'locations'
+    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'types', 'locations'];
+    const fieldMap = { 
+      'pilots': 'pilot', 
+      'rpas': 'rpas', 
+      'observers': 'observer', 
+      'payload': 'payload', 
+      'types': 'type',
+      'locations': 'location'
+    };
 
     keysToCheck.forEach(listKey => {
       const formField = fieldMap[listKey];
@@ -425,18 +476,37 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                   <input type="datetime-local" className="w-full p-3 border border-slate-300 rounded bg-slate-50" value={formData.end} onChange={e => update('end', e.target.value)} />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Location / Site Name</label>
-                <input className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="e.g. Fraser River - Site 4" value={formData.location} onChange={e => update('location', e.target.value)} />
-              </div>
+              
+              {/* Location Input - Now a Dynamic Select */}
+              <DynamicSelect label="Location / Site Name" icon={null} {...getListProps('location', 'locations')} />
+
               <div className="bg-slate-50 p-3 rounded border border-slate-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-bold text-slate-500 uppercase">GPS Coordinates</span>
                   <button onClick={handleGPS} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors">ACQUIRE GPS</button>
                 </div>
-                <div className="flex gap-4 text-sm font-mono text-slate-700">
-                  <span>LAT: {coords.lat || '---'}</span>
-                  <span>LNG: {coords.lng || '---'}</span>
+                {/* Editable GPS Inputs */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-slate-300 rounded text-sm font-mono text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                      value={coords.lat || ''} 
+                      onChange={(e) => handleCoordChange('lat', e.target.value)}
+                      placeholder="0.000000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-slate-300 rounded text-sm font-mono text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                      value={coords.lng || ''} 
+                      onChange={(e) => handleCoordChange('lng', e.target.value)}
+                      placeholder="0.000000"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
