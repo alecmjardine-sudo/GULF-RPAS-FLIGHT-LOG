@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import Dexie from 'dexie'; // <--- UNCOMMENT THIS FOR LOCAL USE
+import Dexie from 'dexie'; // <--- UNCOMMENT THIS FOR LOCAL USE
 import { 
   Crosshair, 
   MapPin, 
@@ -23,44 +23,6 @@ import {
   Upload,
   Cloud
 } from 'lucide-react';
-
-/**
- * --- MOCK DEXIE (FOR PREVIEW ONLY) ---
- * DELETE THIS ENTIRE SECTION AND UNCOMMENT THE IMPORT ABOVE FOR LOCAL USE
- */
-class Dexie {
-  constructor(name) { this.name = name; }
-  version(n) { return this; }
-  stores(schema) { return this; }
-  get missions() { return new TableHandler('missions'); }
-  get settings() { return new TableHandler('settings'); }
-}
-class TableHandler {
-  constructor(name) { this.name = name; }
-  async _store(mode) {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('DFO_Drone_Log_DB', 1);
-      req.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('missions')) db.createObjectStore('missions', { keyPath: 'id' });
-        if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
-      };
-      req.onsuccess = e => resolve(e.target.result.transaction(this.name, mode).objectStore(this.name));
-      req.onerror = e => reject(e);
-    });
-  }
-  async toArray() { return (await this._store('readonly')).getAll().result || []; } // simplified
-  async put(item) { return (await this._store('readwrite')).put(item); }
-  async delete(id) { return (await this._store('readwrite')).delete(id); }
-  async get(key) { return (await this._store('readonly')).get(key).result; } // simplified
-  async bulkPut(items) { 
-    const store = await this._store('readwrite');
-    items.forEach(i => store.put(i));
-  }
-  async clear() { return (await this._store('readwrite')).clear(); }
-}
-/** --- END MOCK DEXIE --- */
-
 
 /**
  * --- DATABASE SETUP (DEXIE) ---
@@ -94,6 +56,25 @@ const formatDateTime24h = (isoString) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
+
+// Helper to add minutes to a date string for input value
+const addMinutes = (dateString, minutes) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  date.setMinutes(date.getMinutes() + minutes);
+  // Format back to YYYY-MM-DDTHH:MM for input type="datetime-local"
+  const offset = date.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(date - offset)).toISOString().slice(0, 16);
+  return localISOTime;
+};
+
+// Helper to get current local time formatted for input
+const getCurrentLocalTime = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return (new Date(now - offset)).toISOString().slice(0, 16);
+};
+
 
 const getCoordinates = (callback) => {
   if ("geolocation" in navigator) {
@@ -355,23 +336,43 @@ const SketchPad = ({ onSave, initialImage }) => {
 const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState(initialData?.coords || { lat: '', lng: '' });
-  const [formData, setFormData] = useState(initialData || {
-    start: '',
-    end: '',
-    location: '',
-    description: '',
-    pilot: '',
-    rpas: '',
-    observer: '',
-    payload: '',
-    type: '',
-    sketch: null,
-    weatherText: '',
-    weatherImage: null,
-    risks: {}
+  
+  // Set default times on mount if it's a new mission
+  const [formData, setFormData] = useState(() => {
+    if (initialData) return initialData;
+    
+    // Default logic: Start now, End +30 mins
+    const nowStr = getCurrentLocalTime();
+    return {
+      start: nowStr,
+      end: addMinutes(nowStr, 30),
+      location: '',
+      description: '',
+      pilot: '',
+      rpas: '',
+      observer: '',
+      payload: '',
+      type: '',
+      sketch: null,
+      weatherText: '',
+      weatherImage: null,
+      risks: {}
+    };
   });
 
-  const update = (k, v) => setFormData(prev => ({ ...prev, [k]: v }));
+  const update = (k, v) => {
+    setFormData(prev => {
+      const newData = { ...prev, [k]: v };
+      
+      // Auto-update End Time if Start Time changes (and it's not a reload of existing data)
+      if (k === 'start' && v) {
+        // Only auto-update end time if user hasn't manually set a specific end time distinct from the +30 default
+        // For simplicity, let's just always bump it 30 mins from the new start time
+        newData.end = addMinutes(v, 30);
+      }
+      return newData;
+    });
+  };
   
   const handleGPS = () => getCoordinates((c) => setCoords(c));
   
