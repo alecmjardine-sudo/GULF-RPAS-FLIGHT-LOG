@@ -1,11 +1,11 @@
-const CACHE_NAME = 'dfo-logbook-v3'; // Increment this version when you deploy updates
+const CACHE_NAME = 'dfo-logbook-v5'; // Increment this version to force update
 
-// Install Event: Cache core static files immediately
+// 1. INSTALL: Force the waiting service worker to become the active service worker.
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force this SW to become active immediately
+  self.skipWaiting();
 });
 
-// Activate Event: Cleanup old caches
+// 2. ACTIVATE: Clean up old caches to save space.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -18,17 +18,23 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  self.clients.claim(); // Take control of all open clients immediately
+  // Tell the active service worker to take control of the page immediately.
+  self.clients.claim();
 });
 
-// Fetch Event: "Stale-While-Revalidate" strategy
+// 3. FETCH: The Core Logic
+// Strategy: Stale-While-Revalidate
+// - If content is in cache, serve it immediately (fast).
+// - Simultaneously, fetch the latest version from network and update cache.
+// - If offline, just serve cache.
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests (like Google Maps/Analytics if added later)
+  // Skip cross-origin requests (like Google Maps if added later)
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // For navigation requests (HTML), always try network first, fallback to cache
+  // Handle Navigation Requests (HTML) separately
+  // We want to ensure the "Shell" of the app always loads
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -39,22 +45,27 @@ self.addEventListener('fetch', (event) => {
           });
         })
         .catch(() => {
+          // If offline, return the cached index.html
           return caches.match(event.request);
         })
     );
     return;
   }
 
-  // For other resources (JS, CSS, Images), try cache first, then network
+  // Handle Assets (JS, CSS, Images)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // Return cached response immediately if available
       const fetchPromise = fetch(event.request).then((networkResponse) => {
+        // Update the cache with the new version from network
         return caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, networkResponse.clone());
           return networkResponse;
         });
       });
 
+      // If we have a cached response, return it.
+      // If not, return the result of the network fetch.
       return cachedResponse || fetchPromise;
     })
   );
