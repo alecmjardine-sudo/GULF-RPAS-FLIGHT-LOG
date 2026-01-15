@@ -1,40 +1,38 @@
-const CACHE_NAME = 'dfo-logbook-v5'; // Increment this version to force update
+const CACHE_NAME = 'dfo-logbook-v12-offline-fix';
 
-// 1. INSTALL: Force the waiting service worker to become the active service worker.
+// 1. INSTALL: Force immediate activation
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// 2. ACTIVATE: Clean up old caches to save space.
+// 2. ACTIVATE: Cleanup old caches to ensure we don't serve stale files
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
-  // Tell the active service worker to take control of the page immediately.
   self.clients.claim();
 });
 
-// 3. FETCH: The Core Logic
-// Strategy: Stale-While-Revalidate
-// - If content is in cache, serve it immediately (fast).
-// - Simultaneously, fetch the latest version from network and update cache.
-// - If offline, just serve cache.
+// 3. FETCH: The critical part for Vite apps
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests (like Google Maps if added later)
-  if (!event.request.url.startsWith(self.location.origin)) {
+  const url = new URL(event.request.url);
+
+  // Skip cross-origin requests (unless strictly necessary)
+  if (!url.origin.startsWith(self.location.origin)) {
     return;
   }
 
-  // Handle Navigation Requests (HTML) separately
-  // We want to ensure the "Shell" of the app always loads
+  // HTML Navigation - Network First, fallback to Cache
+  // This ensures we always try to get the latest version if online.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -46,27 +44,26 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // If offline, return the cached index.html
-          return caches.match(event.request);
+          return caches.match('/index.html') || caches.match('/');
         })
     );
     return;
   }
 
-  // Handle Assets (JS, CSS, Images)
+  // Assets (JS, CSS, Images) - Cache First, fallback to Network (and update cache)
+  // This is vital for hashed filenames. If it's in the cache, serve it instantly.
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Return cached response immediately if available
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Update the cache with the new version from network
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request).then((networkResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, networkResponse.clone());
           return networkResponse;
         });
       });
-
-      // If we have a cached response, return it.
-      // If not, return the result of the network fetch.
-      return cachedResponse || fetchPromise;
     })
   );
 });
