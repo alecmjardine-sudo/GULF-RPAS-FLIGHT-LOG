@@ -24,6 +24,7 @@ import {
   Cloud
 } from 'lucide-react';
 
+
 /**
  * --- DATABASE SETUP (DEXIE) ---
  */
@@ -77,19 +78,42 @@ const getCurrentLocalTime = () => {
 
 
 const getCoordinates = (callback) => {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        callback({
-          lat: position.coords.latitude.toFixed(6),
-          lng: position.coords.longitude.toFixed(6)
-        });
-      },
-      (error) => alert("Could not fetch location. Ensure GPS is on.")
-    );
-  } else {
+  if (!("geolocation" in navigator)) {
     alert("Geolocation not available.");
+    return;
   }
+
+  let resolved = false;
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      if (resolved) return;
+      resolved = true;
+
+      navigator.geolocation.clearWatch(watchId);
+
+      callback({
+        lat: Number(position.coords.latitude.toFixed(6)),
+        lng: Number(position.coords.longitude.toFixed(6)),
+        accuracy: position.coords.accuracy
+      });
+    },
+    (error) => {
+      // Do NOT abort on POSITION_UNAVAILABLE — offline GPS is slow
+      if (error.code === error.POSITION_UNAVAILABLE) {
+        console.warn("GPS unavailable, waiting for fix...");
+        return;
+      }
+
+      navigator.geolocation.clearWatch(watchId);
+      alert("Could not acquire GPS location. Ensure GPS is enabled.");
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 120000 // 2 minutes — critical for offline GPS
+    }
+  );
 };
 
 const exportToCSV = (missions) => {
@@ -202,9 +226,9 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete }
           placeholder="Select or type..."
         />
         <datalist id={id}>
-          {options.map(opt => <option key={opt} value={opt} />)}
+          {options && options.map(opt => <option key={opt} value={opt} />)}
         </datalist>
-        {value && options.includes(value) && (
+        {value && options && options.includes(value) && (
           <button 
             onClick={() => onDelete(value)}
             className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
@@ -416,6 +440,8 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
     keysToCheck.forEach(listKey => {
       const formField = fieldMap[listKey];
       const val = formData[formField];
+      
+      // Check if value exists and is NOT already in the list
       if (val && lists[listKey] && !lists[listKey].includes(val)) {
         onUpdateList(listKey, val, 'add');
       }
@@ -723,7 +749,10 @@ export default function App() {
         // Load Lists
         const savedLists = await db.settings.get('customLists');
         if (savedLists) {
-          setLists(savedLists.value);
+          // CRITICAL FIX: Merge saved lists with DEFAULT_LISTS
+          // This ensures that if we add new list types (like 'locations'), 
+          // they don't get overwritten by an old saved object that lacks them.
+          setLists(prev => ({ ...DEFAULT_LISTS, ...savedLists.value }));
         }
       } catch (error) {
         console.error("Failed to load data from Dexie:", error);
