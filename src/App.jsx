@@ -73,52 +73,98 @@ const getCoordinates = (callback) => {
   });
 };
 
+// --- FIXED CSV EXPORT FUNCTION ---
 const exportToCSV = (missions) => {
-  if (missions.length === 0) {
+  if (!missions || missions.length === 0) {
     alert("No missions to export.");
     return;
   }
 
-  const formatRisks = (risks) => {
-    if (!risks || Object.keys(risks).length === 0) return "None";
-    return Object.entries(risks)
-      .filter(([_, val]) => val.checked)
-      .map(([key, val]) => `${key} (${val.level || '-'}): ${val.mitigation || ''}`)
-      .join(" | ");
-  };
+  try {
+    const escapeCSV = (str) => {
+      if (str === null || str === undefined) return '';
+      const stringValue = String(str);
+      // Escape double quotes and wrap in quotes if contains comma, quote or newline
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
 
-  const headers = [
-    "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
-    "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
-    "Flights", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
-    "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
-    "Approach Alt", "Approach Route", "Emergency Site",
-    "Description", "Risk Summary"
-  ];
+    const formatRisks = (risks) => {
+      if (!risks) return "None";
+      const entries = Object.entries(risks);
+      if (entries.length === 0) return "None";
+      
+      return entries
+        .filter(([_, val]) => val && val.checked)
+        .map(([key, val]) => {
+          const level = val.level || '-';
+          const mit = val.mitigation ? ` (Mitigation: ${val.mitigation})` : '';
+          return `${key} [${level}]${mit}`;
+        })
+        .join(" | ");
+    };
 
-  const csvContent = [
-    headers.join(","),
-    ...missions.map(m => [
-      m.id, formatDateTime24h(m.start), formatDateTime24h(m.end), `"${m.location || ''}"`,
-      m.coords?.lat || '', m.coords?.lng || '', `"${m.pilot || ''}"`, `"${m.rpas || ''}"`,
-      `"${m.observer || ''}"`, `"${m.payload || ''}"`, `"${m.opCategory || ''}"`, `"${m.type || ''}"`,
-      m.flightCount || 1, `"${m.airspace || ''}"`, `"${m.airspaceType || ''}"`,
-      `"${m.aerodromes ? m.aerodromes.join('; ') : ''}"`, `"${m.proximity || ''}"`,
-      `"${m.notams || ''}"`, `"${m.navCanRef || ''}"`,
-      m.temperature || '', m.windSpeed || '', `"${m.windDir || ''}"`, m.visibility || '',
-      `"${m.weatherText || ''}"`, m.approachAlt || '', `"${m.approachRoute || ''}"`,
-      `"${m.emergencySite || ''}"`, `"${m.description || ''}"`, `"${formatRisks(m.risks)}"`
-    ].join(","))
-  ].join("\n");
+    const headers = [
+      "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
+      "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
+      "Flights", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
+      "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
+      "Approach Alt", "Approach Route", "Emergency Site",
+      "Description", "Risk Summary"
+    ];
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `dfo_mission_log_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const rows = missions.map(m => {
+      return [
+        m.id,
+        formatDateTime24h(m.start),
+        formatDateTime24h(m.end),
+        m.location,
+        m.coords?.lat,
+        m.coords?.lng,
+        m.pilot,
+        m.rpas,
+        m.observer,
+        m.payload,
+        m.opCategory,
+        m.type,
+        m.flightCount || 1,
+        m.airspace,
+        m.airspaceType,
+        m.aerodromes ? m.aerodromes.join('; ') : '',
+        m.proximity,
+        m.notams,
+        m.navCanRef,
+        m.temperature,
+        m.windSpeed,
+        m.windDir,
+        m.visibility,
+        m.weatherText,
+        m.approachAlt,
+        m.approachRoute,
+        m.emergencySite,
+        m.description,
+        formatRisks(m.risks)
+      ].map(escapeCSV).join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    
+    // Add BOM for Excel compatibility
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dfo_mission_log_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+  } catch (err) {
+    console.error("Export Error:", err);
+    alert("Failed to generate CSV. Check console for details.\nError: " + err.message);
+  }
 };
 
 const backupData = async (missions, lists) => {
@@ -361,7 +407,7 @@ const SketchPad = ({ onSave, initialImage }) => {
 const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState(initialData?.coords || { lat: '', lng: '' });
-  const scrollRef = useRef(null); // Ref for scrolling
+  const scrollRef = useRef(null); 
   
   const [formData, setFormData] = useState(() => {
     if (initialData) return initialData;
@@ -370,7 +416,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       start: nowStr,
       end: addMinutes(nowStr, 30),
       location: '', description: '', pilot: '', rpas: '', observer: '', 
-      payload: '', opCategory: 'Basic', // Added Default
+      payload: '', opCategory: 'Basic',
       type: '', flightCount: 1, 
       airspace: '', airspaceType: '', aerodromes: [], proximity: '',
       notams: '', navCanRef: '', navCanFile: null,
@@ -380,7 +426,6 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
     };
   });
 
-  // Scroll to top when step changes
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [step]);
@@ -510,7 +555,6 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
               <DynamicSelect label="RPAS Model and Reg No." icon={Crosshair} {...getListProps('rpas', 'rpas')} />
               <DynamicSelect label="Observer" icon={Eye} {...getListProps('observer', 'observers')} />
               <DynamicSelect label="Payload" icon={Box} {...getListProps('payload', 'payload')} />
-              {/* NEW FIELD: Op Category */}
               <DynamicSelect label="Operation Category" icon={Activity} {...getListProps('opCategory', 'opCategories')} />
               
               <DynamicSelect label="Airspace Class" icon={Cloud} {...getListProps('airspace', 'airspaces')} />
@@ -600,7 +644,6 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                <div><label className="font-bold text-slate-800 mb-2 block text-sm uppercase">Description / Objectives</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-24" value={formData.description} onChange={e => update('description', e.target.value)} /></div>
                <div className="space-y-3">
                  <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase"><PenTool className="h-4 w-4 text-emerald-700" /> MISSION AREA SKETCH</h3>
-                 {/* RESTORED SKETCHPAD WITH UPLOAD */}
                  <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} />
                </div>
             </div>
