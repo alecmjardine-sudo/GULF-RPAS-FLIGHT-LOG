@@ -108,14 +108,13 @@ const exportToCSV = (missions) => {
     const headers = [
       "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
       "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
-      "Flights", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
+      "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
-      "Description", "Risk Summary"
+      "Description", "Risk Summary", "Map Sketch Data"
     ];
 
     const rows = missions.map(m => {
-      // SAFE CHECK: Ensure aerodromes is an array before joining
       const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
 
       return [
@@ -132,9 +131,10 @@ const exportToCSV = (missions) => {
         m.opCategory,
         m.type,
         m.flightCount || 1,
+        m.distance, // Added Distance
         m.airspace,
         m.airspaceType,
-        aerodromeStr, // Use safe string here
+        aerodromeStr,
         m.proximity,
         m.notams,
         m.navCanRef,
@@ -147,7 +147,8 @@ const exportToCSV = (missions) => {
         m.approachRoute,
         m.emergencySite,
         m.description,
-        formatRisks(m.risks)
+        formatRisks(m.risks),
+        m.sketch // Added Map Image Data
       ].map(escapeCSV).join(",");
     });
 
@@ -417,9 +418,10 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       start: nowStr,
       end: addMinutes(nowStr, 30),
       location: '', description: '', pilot: '', rpas: '', observer: '', 
-      payload: '', opCategory: 'Basic',
+      payload: '', opCategory: '', // Default to BLANK
       type: '', flightCount: 1, 
       airspace: '', airspaceType: '', aerodromes: [], proximity: '',
+      distance: '', // Added Distance
       notams: '', navCanRef: '', navCanFile: null,
       temperature: '', windSpeed: '', windDir: '', visibility: '',
       approachAlt: '', approachRoute: '', emergencySite: '',
@@ -634,6 +636,13 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> No. of Flights</label>
                  <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
                </div>
+               
+               {/* ADDED DISTANCE FIELD */}
+               <div className="mb-4">
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-emerald-700" /> Distance to Operational Area (km)</label>
+                 <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.distance} onChange={(e) => update('distance', e.target.value)} placeholder="e.g. 1.2" />
+               </div>
+
                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
                  <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">Approach and Departure</h4>
                  <div className="grid grid-cols-2 gap-4">
