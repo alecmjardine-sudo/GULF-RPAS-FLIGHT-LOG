@@ -84,7 +84,6 @@ const exportToCSV = (missions) => {
     const escapeCSV = (str) => {
       if (str === null || str === undefined) return '';
       const stringValue = String(str);
-      // Escape double quotes and wrap in quotes if contains comma, quote or newline
       if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
       }
@@ -116,6 +115,9 @@ const exportToCSV = (missions) => {
     ];
 
     const rows = missions.map(m => {
+      // SAFE CHECK: Ensure aerodromes is an array before joining
+      const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
+
       return [
         m.id,
         formatDateTime24h(m.start),
@@ -132,7 +134,7 @@ const exportToCSV = (missions) => {
         m.flightCount || 1,
         m.airspace,
         m.airspaceType,
-        m.aerodromes ? m.aerodromes.join('; ') : '',
+        aerodromeStr, // Use safe string here
         m.proximity,
         m.notams,
         m.navCanRef,
@@ -151,7 +153,6 @@ const exportToCSV = (missions) => {
 
     const csvContent = [headers.join(","), ...rows].join("\n");
     
-    // Add BOM for Excel compatibility
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
