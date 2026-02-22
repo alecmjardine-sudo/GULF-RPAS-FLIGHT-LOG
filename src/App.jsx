@@ -73,7 +73,7 @@ const getCoordinates = (callback) => {
   });
 };
 
-// --- FIXED CSV EXPORT FUNCTION ---
+// --- CSV EXPORT FUNCTION ---
 const exportToCSV = (missions) => {
   if (!missions || missions.length === 0) {
     alert("No missions to export.");
@@ -107,10 +107,12 @@ const exportToCSV = (missions) => {
 
     const headers = [
       "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
+      "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
       "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
       "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
+      "Preflight Completed", "Preflight Issues",
       "Description", "Risk Summary", "Map Sketch Data"
     ];
 
@@ -124,6 +126,9 @@ const exportToCSV = (missions) => {
         m.location,
         m.coords?.lat,
         m.coords?.lng,
+        m.secondaryLat,
+        m.secondaryLng,
+        m.referenceGpsUnit,
         m.pilot,
         m.rpas,
         m.observer,
@@ -131,7 +136,7 @@ const exportToCSV = (missions) => {
         m.opCategory,
         m.type,
         m.flightCount || 1,
-        m.distance, // Added Distance
+        m.distance,
         m.airspace,
         m.airspaceType,
         aerodromeStr,
@@ -146,9 +151,11 @@ const exportToCSV = (missions) => {
         m.approachAlt,
         m.approachRoute,
         m.emergencySite,
+        m.preflightCompleted ? 'Yes' : 'No',
+        m.preflightIssues,
         m.description,
         formatRisks(m.risks),
-        m.sketch // Added Map Image Data
+        m.sketch
       ].map(escapeCSV).join(",");
     });
 
@@ -195,7 +202,8 @@ const DEFAULT_LISTS = {
     'Charlottetown (CYYG) - 118.0', 'Summerside (CYSU) - 122.3',
     'Halifax (CYHZ) - 118.7', 'Sydney (CYQY) - 118.7', 'Yarmouth (CYQY) - 122.3', 'Greenwood (CYZX) - 119.5', 'Trenton (CYTN) - 122.8'
   ],
-  airspaceTypes: ['Uncontrolled', 'Controlled', 'Restricted']
+  airspaceTypes: ['Uncontrolled', 'Controlled', 'Restricted'],
+  referenceGpsUnits: []
 };
 
 const RISK_ITEMS = [
@@ -239,6 +247,14 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                 list={id}
                 className="flex-1 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                 placeholder="Select or type..."
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (options && options.includes(val)) {
+                     const current = Array.isArray(value) ? value : [];
+                     if (!current.includes(val)) onChange([...current, val]);
+                     e.target.value = '';
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -315,6 +331,7 @@ const SketchPad = ({ onSave, initialImage }) => {
         const x = (canvas.width / 2) - (img.width / 2) * scale;
         const y = (canvas.height / 2) - (img.height / 2) * scale;
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        onSave(canvas.toDataURL());
       };
     }
   }, [backgroundImage]);
@@ -418,13 +435,15 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       start: nowStr,
       end: addMinutes(nowStr, 30),
       location: '', description: '', pilot: '', rpas: '', observer: '', 
-      payload: '', opCategory: '', // Default to BLANK
+      payload: '', opCategory: '', 
       type: '', flightCount: 1, 
       airspace: '', airspaceType: '', aerodromes: [], proximity: '',
-      distance: '', // Added Distance
+      distance: '', 
       notams: '', navCanRef: '', navCanFile: null,
       temperature: '', windSpeed: '', windDir: '', visibility: '',
       approachAlt: '', approachRoute: '', emergencySite: '',
+      secondaryLat: '', secondaryLng: '', referenceGpsUnit: '',
+      preflightCompleted: false, preflightIssues: '',
       sketch: null, weatherText: '', weatherImage: null, risks: {}
     };
   });
@@ -461,12 +480,12 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       alert("Please enter at least a Location and Pilot name.");
       return;
     }
-    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes'];
+    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits'];
     const fieldMap = { 
       'pilots': 'pilot', 'rpas': 'rpas', 'observers': 'observer', 
       'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
       'locations': 'location', 'airspaces': 'airspace', 'aerodromes': 'aerodromes', 
-      'airspaceTypes': 'airspaceType'
+      'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit'
     };
 
     keysToCheck.forEach(listKey => {
@@ -546,6 +565,23 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                     <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
                   </div>
                 </div>
+              </div>
+              
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase">SECONDARY GPS COORDINATES (REFERENCE)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLat || ''} onChange={(e) => update('secondaryLat', e.target.value)} placeholder="0.000000" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLng || ''} onChange={(e) => update('secondaryLng', e.target.value)} placeholder="0.000000" />
+                  </div>
+                </div>
+                <DynamicSelect label="REFERENCE GPS UNIT" icon={Navigation} {...getListProps('referenceGpsUnit', 'referenceGpsUnits')} />
               </div>
             </div>
 
@@ -637,7 +673,6 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                  <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
                </div>
                
-               {/* ADDED DISTANCE FIELD */}
                <div className="mb-4">
                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-emerald-700" /> Distance to Operational Area (km)</label>
                  <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.distance} onChange={(e) => update('distance', e.target.value)} placeholder="e.g. 1.2" />
@@ -684,6 +719,24 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                 </div>
               );
             })}
+            
+            <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm mt-6">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+                <FileCheck className="h-5 w-5 text-emerald-700" />
+                PRE-FLIGHT CHECKLIST
+              </h3>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">COMPLETED CHECKLIST</label>
+                <label className="flex items-center cursor-pointer bg-slate-50 p-3 rounded border border-slate-200 hover:bg-slate-100 transition-colors">
+                  <input type="checkbox" className="w-5 h-5 accent-emerald-700 rounded mr-3" checked={formData.preflightCompleted || false} onChange={(e) => update('preflightCompleted', e.target.checked)} />
+                  <span className="text-sm font-medium text-slate-700">I have completed the pre-flight checklist</span>
+                </label>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">ISSUES / CONCERNS</label>
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.preflightIssues || ''} onChange={(e) => update('preflightIssues', e.target.value)} placeholder="Note any issues or concerns here..." />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -791,14 +844,14 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
-        // FIX: Force merge opCategories from DEFAULT_LISTS if they are missing or incomplete in the saved DB
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
              ...savedLists.value,
              opCategories: (savedLists.value.opCategories && savedLists.value.opCategories.length > 1) 
                 ? savedLists.value.opCategories 
-                : DEFAULT_LISTS.opCategories
+                : DEFAULT_LISTS.opCategories,
+             referenceGpsUnits: savedLists.value.referenceGpsUnits || DEFAULT_LISTS.referenceGpsUnits
            }));
         }
       } catch (error) { console.error(error); }
