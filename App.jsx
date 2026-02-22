@@ -1,127 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import Dexie from 'dexie'; // <--- UNCOMMENT THIS FOR LOCAL USE
+import Dexie from 'dexie'; 
 import { 
-  Crosshair, 
-  MapPin, 
-  FileText, 
-  AlertTriangle, 
-  Download, 
-  Trash2, 
-  Plus, 
-  Save, 
-  ArrowLeft,
-  Navigation,
-  Users,
-  Eye,
-  Box,
-  PenTool,
-  Image as ImageIcon,
-  Eraser,
-  Edit2,
-  Calendar,
-  Database,
-  Upload,
-  Cloud,
-  Radio,
-  FileCheck,
-  Wind,
-  List
+  Crosshair, MapPin, FileText, AlertTriangle, Download, Trash2, Plus, Save, 
+  ArrowLeft, Navigation, Users, Eye, Box, PenTool, Image as ImageIcon, 
+  Eraser, Edit2, Calendar, Database, Upload, Cloud, Radio, FileCheck, Wind, 
+  Thermometer, Eye as VisibilityIcon, Activity, Search
 } from 'lucide-react';
-
-/**
- * --- MOCK DEXIE (FOR PREVIEW ONLY) ---
- * DELETE THIS ENTIRE SECTION AND UNCOMMENT THE IMPORT ABOVE FOR LOCAL USE
- */
-class Dexie {
-  constructor(name) { this.name = name; }
-  version(n) { return this; }
-  stores(schema) { return this; }
-  get missions() { return new TableHandler('missions'); }
-  get settings() { return new TableHandler('settings'); }
-}
-
-class TableHandler {
-  constructor(name) { this.name = name; }
-  
-  async _store(mode) {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('DFO_Drone_Log_DB', 1);
-      
-      req.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('missions')) {
-          db.createObjectStore('missions', { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains('settings')) {
-          db.createObjectStore('settings', { keyPath: 'key' });
-        }
-      };
-
-      req.onsuccess = (event) => {
-        const db = event.target.result;
-        const tx = db.transaction(this.name, mode);
-        resolve(tx.objectStore(this.name));
-      };
-
-      req.onerror = (event) => reject(event.target.error);
-    });
-  }
-
-  async toArray() {
-    const store = await this._store('readonly');
-    return new Promise((resolve, reject) => {
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async put(item) {
-    const store = await this._store('readwrite');
-    return new Promise((resolve, reject) => {
-      const req = store.put(item);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async delete(id) {
-    const store = await this._store('readwrite');
-    return new Promise((resolve, reject) => {
-      const req = store.delete(id);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async get(key) {
-    const store = await this._store('readonly');
-    return new Promise((resolve, reject) => {
-      const req = store.get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async bulkPut(items) {
-    const store = await this._store('readwrite');
-    // Simple loop for mock purposes
-    for (const item of items) {
-      store.put(item);
-    }
-  }
-
-  async clear() {
-    const store = await this._store('readwrite');
-    return new Promise((resolve, reject) => {
-      const req = store.clear();
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-}
-/** --- END MOCK DEXIE --- */
-
 
 /**
  * --- DATABASE SETUP (DEXIE) ---
@@ -130,8 +14,8 @@ class DroneLogDatabase extends Dexie {
   constructor() {
     super('DFO_Drone_Log_DB');
     this.version(1).stores({
-      missions: 'id, created, start', // Primary key and indexed fields
-      settings: 'key' // For storing lists
+      missions: 'id, created, start', 
+      settings: 'key' 
     });
   }
 }
@@ -156,17 +40,16 @@ const formatDateTime24h = (isoString) => {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
-// Helper to add minutes to a date string for input value
+// Helper to add minutes
 const addMinutes = (dateString, minutes) => {
   if (!dateString) return '';
   const date = new Date(dateString);
   date.setMinutes(date.getMinutes() + minutes);
   const offset = date.getTimezoneOffset() * 60000;
-  const localISOTime = (new Date(date - offset)).toISOString().slice(0, 16);
-  return localISOTime;
+  return (new Date(date - offset)).toISOString().slice(0, 16);
 };
 
-// Helper to get current local time formatted for input
+// Helper to get current local time
 const getCurrentLocalTime = () => {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60000;
@@ -178,100 +61,123 @@ const getCoordinates = (callback) => {
     alert("Geolocation is not supported by your browser.");
     return;
   }
-
-  const opts = { 
-    enableHighAccuracy: true, 
-    timeout: 10000, 
-    maximumAge: Infinity 
+  const success = (position) => {
+    callback({
+      lat: position.coords.latitude.toFixed(6),
+      lng: position.coords.longitude.toFixed(6)
+    });
   };
-  
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      callback({
-        lat: position.coords.latitude.toFixed(6),
-        lng: position.coords.longitude.toFixed(6)
-      });
-    },
-    (error) => alert(`GPS Error: ${error.message}`), 
-    opts
-  );
+  const error = (err) => alert(`GPS Error: ${err.message}`);
+  navigator.geolocation.getCurrentPosition(success, error, {
+    enableHighAccuracy: true, timeout: 10000, maximumAge: Infinity
+  });
 };
 
+// --- CSV EXPORT FUNCTION ---
 const exportToCSV = (missions) => {
-  if (missions.length === 0) {
+  if (!missions || missions.length === 0) {
     alert("No missions to export.");
     return;
   }
 
-  const formatRisks = (risks) => {
-    if (!risks || Object.keys(risks).length === 0) return "None";
-    return Object.entries(risks)
-      .filter(([_, val]) => val.checked)
-      .map(([key, val]) => `${key} (${val.level || '-'}): ${val.mitigation || ''}`)
-      .join(" | ");
-  };
+  try {
+    const escapeCSV = (str) => {
+      if (str === null || str === undefined) return '';
+      const stringValue = String(str);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
 
-  const headers = [
-    "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
-    "Pilot", "RPAS Model/Reg", "Operation Category", "Observer", "Payload", "Mission Type", 
-    "Flights", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
-    "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
-    "Approach Alt", "Approach Route", "Emergency Site",
-    "Description", "Risk Summary"
-  ];
+    const formatRisks = (risks) => {
+      if (!risks) return "None";
+      const entries = Object.entries(risks);
+      if (entries.length === 0) return "None";
+      
+      return entries
+        .filter(([_, val]) => val && val.checked)
+        .map(([key, val]) => {
+          const level = val.level || '-';
+          const mit = val.mitigation ? ` (Mitigation: ${val.mitigation})` : '';
+          return `${key} [${level}]${mit}`;
+        })
+        .join(" | ");
+    };
 
-  const csvContent = [
-    headers.join(","),
-    ...missions.map(m => [
-      m.id,
-      formatDateTime24h(m.start),
-      formatDateTime24h(m.end),
-      `"${m.location || ''}"`,
-      m.coords?.lat || '',
-      m.coords?.lng || '',
-      `"${m.pilot || ''}"`,
-      `"${m.rpas || ''}"`,
-      `"${m.opCategory || ''}"`,
-      `"${m.observer || ''}"`,
-      `"${m.payload || ''}"`,
-      `"${m.type || ''}"`,
-      m.flightCount || 1,
-      `"${m.airspace || ''}"`,
-      `"${m.airspaceType || ''}"`,
-      `"${m.aerodromes ? m.aerodromes.join('; ') : ''}"`,
-      `"${m.proximity || ''}"`,
-      `"${m.notams || ''}"`,
-      `"${m.navCanRef || ''}"`,
-      m.temperature || '',
-      m.windSpeed || '',
-      `"${m.windDir || ''}"`,
-      m.visibility || '',
-      `"${m.weatherText || ''}"`,
-      m.approachAlt || '',
-      `"${m.approachRoute || ''}"`,
-      `"${m.emergencySite || ''}"`,
-      `"${m.description || ''}"`,
-      `"${formatRisks(m.risks)}"`
-    ].join(","))
-  ].join("\n");
+    const headers = [
+      "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
+      "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
+      "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
+      "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
+      "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
+      "Approach Alt", "Approach Route", "Emergency Site",
+      "Preflight Completed", "Preflight Issues",
+      "Description", "Risk Summary", "Map Sketch Data"
+    ];
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `dfo_mission_log_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const rows = missions.map(m => {
+      const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
+
+      return [
+        m.id,
+        formatDateTime24h(m.start),
+        formatDateTime24h(m.end),
+        m.location,
+        m.coords?.lat,
+        m.coords?.lng,
+        m.secondaryLat,
+        m.secondaryLng,
+        m.referenceGpsUnit,
+        m.pilot,
+        m.rpas,
+        m.observer,
+        m.payload,
+        m.opCategory,
+        m.type,
+        m.flightCount || 1,
+        m.distance,
+        m.airspace,
+        m.airspaceType,
+        aerodromeStr,
+        m.proximity,
+        m.notams,
+        m.navCanRef,
+        m.temperature,
+        m.windSpeed,
+        m.windDir,
+        m.visibility,
+        m.weatherText,
+        m.approachAlt,
+        m.approachRoute,
+        m.emergencySite,
+        m.preflightCompleted ? 'Yes' : 'No',
+        m.preflightIssues,
+        m.description,
+        formatRisks(m.risks),
+        m.sketch
+      ].map(escapeCSV).join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `dfo_mission_log_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+  } catch (err) {
+    console.error("Export Error:", err);
+    alert("Failed to generate CSV. Check console for details.\nError: " + err.message);
+  }
 };
 
 const backupData = async (missions, lists) => {
-  const data = {
-    missions,
-    lists,
-    version: 'v7-dexie',
-    backupDate: new Date().toISOString()
-  };
+  const data = { missions, lists, version: 'v6-dexie', backupDate: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -282,11 +188,11 @@ const backupData = async (missions, lists) => {
   document.body.removeChild(link);
 };
 
-// Default Lists
 const DEFAULT_LISTS = {
   rpas: ['Mavic 2 Enterprise', 'Matrice 300', 'Mini 3 Pro'],
   pilots: ['Officer Smith', 'Officer Jones'],
   payload: ['Visual', 'Thermal', 'LiDAR'],
+  opCategories: ['Microdrone', 'Basic', 'Advanced', 'Level 1 Complex', 'SFOC'],
   observers: ['None'],
   types: ['Training', 'Enforcement', 'Search & Rescue', 'Habitat Survey'],
   locations: [],
@@ -297,16 +203,17 @@ const DEFAULT_LISTS = {
     'Halifax (CYHZ) - 118.7', 'Sydney (CYQY) - 118.7', 'Yarmouth (CYQY) - 122.3', 'Greenwood (CYZX) - 119.5', 'Trenton (CYTN) - 122.8'
   ],
   airspaceTypes: ['Uncontrolled', 'Controlled', 'Restricted'],
-  opCategories: ['Microdrone', 'Basic', 'Advanced', 'Level 1 Complex', 'SFOC']
+  referenceGpsUnits: []
 };
 
 const RISK_ITEMS = [
   'Presence of people', 'Proximity to built-up area', 'Proximity to obstacles',
   'Proximity to protected birds or animals', 'Proximity to air traffic',
-  'Operation in control zones', 'Airspace restriction (F zone)', 'Radio interference',
-  'Magnetic fields', 'Sand/dust', 'Glass buildings', 'Strong wind', 'Very cold',
-  'Heat wave', 'Municipal restriction', 'Privacy intrusion', 'Pyrotechnics', 
-  'Drone contrast', 'Any other risk'
+  'Operation in control zones', 'Airspace restriction (F zone)', 'Risk of radio interference',
+  'Proximity to magnetic fields', 'Environment with sand or dust in suspension',
+  'Proximity to glass buildings', 'Strong wind condition', 'Very cold weather',
+  'Heat wave condition (heat stress)', 'Municipal restriction', 'Risk of intrusion into privacy',
+  'Proximity of pyrotechnic', 'Drone not contrasted with the horizon', 'Any other risk'
 ];
 
 /**
@@ -331,9 +238,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                    <button onClick={() => {
                       const newValue = value.filter(i => i !== v);
                       onChange(newValue);
-                   }} className="hover:text-red-600">
-                     <Trash2 className="h-3 w-3" />
-                   </button>
+                   }} className="hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
                  </span>
                ))}
             </div>
@@ -341,7 +246,15 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                <input
                 list={id}
                 className="flex-1 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                placeholder="Type and press Enter..."
+                placeholder="Select or type..."
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (options && options.includes(val)) {
+                     const current = Array.isArray(value) ? value : [];
+                     if (!current.includes(val)) onChange([...current, val]);
+                     e.target.value = '';
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -361,7 +274,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
             <p className="text-[10px] text-slate-500">Type and press Enter to add multiple entries.</p>
           </div>
         </div>
-     );
+     )
   }
 
   return (
@@ -386,7 +299,6 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
             onClick={() => onDelete(value)}
             className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
             type="button"
-            title="Remove from saved list"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -399,18 +311,15 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
 const SketchPad = ({ onSave, initialImage }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [color, setColor] = useState('#dc2626'); 
   const [backgroundImage, setBackgroundImage] = useState(initialImage || null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    
-    // Set canvas size
     canvas.width = canvas.offsetWidth;
     canvas.height = 300; 
-    
-    // Fill white
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -422,6 +331,7 @@ const SketchPad = ({ onSave, initialImage }) => {
         const x = (canvas.width / 2) - (img.width / 2) * scale;
         const y = (canvas.height / 2) - (img.height / 2) * scale;
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        onSave(canvas.toDataURL());
       };
     }
   }, [backgroundImage]);
@@ -448,7 +358,7 @@ const SketchPad = ({ onSave, initialImage }) => {
     const ctx = canvasRef.current.getContext('2d');
     const pos = getPos(e);
     ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#dc2626'; // Red color
+    ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -492,6 +402,11 @@ const SketchPad = ({ onSave, initialImage }) => {
             <Eraser className="h-3 w-3" /> CLEAR
           </button>
         </div>
+        <div className="flex gap-2 items-center">
+          <div className={`w-5 h-5 rounded-full cursor-pointer border-2 ${color === '#dc2626' ? 'border-slate-800' : 'border-transparent'}`} style={{background: '#dc2626'}} onClick={() => setColor('#dc2626')} />
+          <div className={`w-5 h-5 rounded-full cursor-pointer border-2 ${color === '#2563eb' ? 'border-slate-800' : 'border-transparent'}`} style={{background: '#2563eb'}} onClick={() => setColor('#2563eb')} />
+          <div className={`w-5 h-5 rounded-full cursor-pointer border-2 ${color === '#000000' ? 'border-slate-800' : 'border-transparent'}`} style={{background: '#000000'}} onClick={() => setColor('#000000')} />
+        </div>
       </div>
       <canvas 
         ref={canvasRef}
@@ -511,52 +426,36 @@ const SketchPad = ({ onSave, initialImage }) => {
 const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState(initialData?.coords || { lat: '', lng: '' });
+  const scrollRef = useRef(null); 
   
-  // Set default times on mount if it's a new mission
   const [formData, setFormData] = useState(() => {
     if (initialData) return initialData;
-    
-    // Default logic: Start now, End +30 mins
     const nowStr = getCurrentLocalTime();
     return {
       start: nowStr,
       end: addMinutes(nowStr, 30),
-      location: '',
-      description: '',
-      pilot: '',
-      rpas: '',
-      observer: '',
-      payload: '',
-      opCategory: '', // New field
-      type: '',
-      flightCount: 1,
-      airspace: '',
-      airspaceType: '',
-      aerodromes: [], // multiple
-      proximity: '',
-      notams: '',
-      navCanRef: '',
-      navCanFile: null,
-      temperature: '',
-      windSpeed: '',
-      windDir: '',
-      visibility: '',
-      approachAlt: '',
-      approachRoute: '',
-      emergencySite: '',
-      sketch: null,
-      weatherText: '',
-      weatherImage: null,
-      risks: {}
+      location: '', description: '', pilot: '', rpas: '', observer: '', 
+      payload: '', opCategory: '', 
+      type: '', flightCount: 1, 
+      airspace: '', airspaceType: '', aerodromes: [], proximity: '',
+      distance: '', 
+      notams: '', navCanRef: '', navCanFile: null,
+      temperature: '', windSpeed: '', windDir: '', visibility: '',
+      approachAlt: '', approachRoute: '', emergencySite: '',
+      secondaryLat: '', secondaryLng: '', referenceGpsUnit: '',
+      preflightCompleted: false, preflightIssues: '',
+      sketch: null, weatherText: '', weatherImage: null, risks: {}
     };
   });
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [step]);
 
   const update = (k, v) => {
     setFormData(prev => {
       const newData = { ...prev, [k]: v };
-      if (k === 'start' && v) {
-        newData.end = addMinutes(v, 30);
-      }
+      if (k === 'start' && v) newData.end = addMinutes(v, 30);
       return newData;
     });
   };
@@ -572,10 +471,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
         delete newRisks[riskName];
         return { ...prev, risks: newRisks };
       }
-      return {
-        ...prev,
-        risks: { ...prev.risks, [riskName]: { ...currentRisk, [field]: value } }
-      };
+      return { ...prev, risks: { ...prev.risks, [riskName]: { ...currentRisk, [field]: value } } };
     });
   };
 
@@ -584,44 +480,26 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       alert("Please enter at least a Location and Pilot name.");
       return;
     }
-
-    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'types', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'opCategories'];
+    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits'];
     const fieldMap = { 
-      'pilots': 'pilot', 
-      'rpas': 'rpas', 
-      'observers': 'observer', 
-      'payload': 'payload', 
-      'types': 'type',
-      'locations': 'location',
-      'airspaces': 'airspace',
-      'aerodromes': 'aerodromes',
-      'airspaceTypes': 'airspaceType',
-      'opCategories': 'opCategory'
+      'pilots': 'pilot', 'rpas': 'rpas', 'observers': 'observer', 
+      'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
+      'locations': 'location', 'airspaces': 'airspace', 'aerodromes': 'aerodromes', 
+      'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit'
     };
 
     keysToCheck.forEach(listKey => {
       const formField = fieldMap[listKey];
       const val = formData[formField];
-      
       if (Array.isArray(val)) {
-         val.forEach(item => {
-            if (item && lists[listKey] && !lists[listKey].includes(item)) {
-               onUpdateList(listKey, item, 'add');
-            }
-         });
+         val.forEach(item => { if (item && lists[listKey] && !lists[listKey].includes(item)) onUpdateList(listKey, item, 'add'); });
       } else {
-         if (val && lists[listKey] && !lists[listKey].includes(val)) {
-            onUpdateList(listKey, val, 'add');
-         }
+         if (val && lists[listKey] && !lists[listKey].includes(val)) onUpdateList(listKey, val, 'add');
       }
     });
 
-    onSave({
-      ...formData,
-      coords,
-      id: initialData?.id || generateId(),
-      created: initialData?.created || new Date().toISOString()
-    });
+    const mission = { ...formData, coords, id: initialData?.id || generateId(), created: initialData?.created || new Date().toISOString() };
+    onSave(mission);
   };
 
   const getListProps = (formKey, listKey, multiple = false) => ({
@@ -653,7 +531,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-24">
+      <div className="flex-1 overflow-y-auto p-4 pb-24" ref={scrollRef}>
         {step === 1 && (
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
@@ -671,9 +549,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                   <input type="datetime-local" className="w-full p-3 border border-slate-300 rounded bg-slate-50" value={formData.end} onChange={e => update('end', e.target.value)} />
                 </div>
               </div>
-              
               <DynamicSelect label="Location / Site Name" icon={null} {...getListProps('location', 'locations')} />
-
               <div className="bg-slate-50 p-3 rounded border border-slate-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-bold text-slate-500 uppercase">GPS Coordinates</span>
@@ -682,13 +558,30 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
-                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500 outline-none" value={coords.lat || ''} onChange={(e) => handleCoordChange('lat', e.target.value)} placeholder="0.000000" />
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono" value={coords.lat || ''} onChange={(e) => handleCoordChange('lat', e.target.value)} placeholder="0.000000" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
-                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500 outline-none" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
                   </div>
                 </div>
+              </div>
+              
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase">SECONDARY GPS COORDINATES (REFERENCE)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLat || ''} onChange={(e) => update('secondaryLat', e.target.value)} placeholder="0.000000" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLng || ''} onChange={(e) => update('secondaryLng', e.target.value)} placeholder="0.000000" />
+                  </div>
+                </div>
+                <DynamicSelect label="REFERENCE GPS UNIT" icon={Navigation} {...getListProps('referenceGpsUnit', 'referenceGpsUnits')} />
               </div>
             </div>
 
@@ -701,110 +594,71 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
               <DynamicSelect label="RPAS Model and Reg No." icon={Crosshair} {...getListProps('rpas', 'rpas')} />
               <DynamicSelect label="Observer" icon={Eye} {...getListProps('observer', 'observers')} />
               <DynamicSelect label="Payload" icon={Box} {...getListProps('payload', 'payload')} />
-              <DynamicSelect label="Operation Category" icon={List} {...getListProps('opCategory', 'opCategories')} />
+              <DynamicSelect label="Operation Category" icon={Activity} {...getListProps('opCategory', 'opCategories')} />
               
               <DynamicSelect label="Airspace Class" icon={Cloud} {...getListProps('airspace', 'airspaces')} />
               <DynamicSelect label="Airspace Type" icon={Cloud} {...getListProps('airspaceType', 'airspaceTypes')} />
-              
               <DynamicSelect label="Nearby Aerodromes / Frequency" icon={MapPin} {...getListProps('aerodromes', 'aerodromes', true)} />
               
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Proximity to Nearest Aerodrome</label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.proximity} onChange={(e) => update('proximity', e.target.value)} placeholder="e.g. 5NM West" />
+                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.proximity} onChange={(e) => update('proximity', e.target.value)} placeholder="e.g. 5NM West" />
               </div>
-
                <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Applicable NOTAMS</label>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none h-20" value={formData.notams} onChange={(e) => update('notams', e.target.value)} placeholder="Enter applicable NOTAMs..." />
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.notams} onChange={(e) => update('notams', e.target.value)} placeholder="Enter applicable NOTAMs..." />
               </div>
-
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
-                  <FileText className="h-3 w-3 text-emerald-700" />
-                  Nav Canada Ref No.
-                </label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.navCanRef} onChange={(e) => update('navCanRef', e.target.value)} placeholder="Enter Ref No." />
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileText className="h-3 w-3 text-emerald-700" /> Nav Canada Ref No.</label>
+                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.navCanRef} onChange={(e) => update('navCanRef', e.target.value)} placeholder="Enter Ref No." />
               </div>
-
               <div className="mb-4">
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
-                    <FileCheck className="h-3 w-3 text-emerald-700" />
-                    NAV Canada File Upload
-                 </label>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileCheck className="h-3 w-3 text-emerald-700" /> NAV Canada File Upload</label>
                  {formData.navCanFile ? (
-                    <div className="relative group">
-                      <div className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-md text-sm text-emerald-800 flex items-center gap-2">
-                        <FileCheck className="h-4 w-4" /> File Attached
-                      </div>
-                      <button onClick={() => update('navCanFile', null)} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-md hover:bg-red-700" title="Remove File"><Trash2 className="h-3 w-3" /></button>
+                    <div className="relative group p-3 bg-emerald-50 border border-emerald-200 rounded-md text-sm text-emerald-800 flex items-center gap-2">
+                       <FileCheck className="h-4 w-4" /> File Attached
+                       <button onClick={() => update('navCanFile', null)} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-md"><Trash2 className="h-3 w-3" /></button>
                     </div>
                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                            <Upload className="h-4 w-4 text-slate-400 mb-1" />
-                            <p className="text-[10px] text-slate-500">Upload File / Image</p>
-                        </div>
-                        <input type="file" className="hidden" onChange={(e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => update('navCanFile', ev.target.result); reader.readAsDataURL(file); } }} />
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50">
+                        <Upload className="h-4 w-4 text-slate-400" /><span className="text-[10px] text-slate-500">Upload File / Image</span>
+                        <input type="file" className="hidden" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=(ev)=>update('navCanFile', ev.target.result); r.readAsDataURL(f); }}} />
                     </label>
                  )}
               </div>
             </div>
 
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-3">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                <Cloud className="h-5 w-5 text-emerald-700" />
-                WEATHER CONDITIONS
-              </h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Temp (°C)</label>
-                    <input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.temperature} onChange={(e) => update('temperature', e.target.value)} />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Wind (km/h)</label>
-                    <input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.windSpeed} onChange={(e) => update('windSpeed', e.target.value)} />
-                 </div>
-              </div>
-
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Cloud className="h-5 w-5 text-emerald-700" /> WEATHER CONDITIONS</h3>
                <div className="grid grid-cols-2 gap-4">
-                 <div>
+                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Temp (°C)</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.temperature} onChange={(e) => update('temperature', e.target.value)} /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Wind (km/h)</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.windSpeed} onChange={(e) => update('windSpeed', e.target.value)} /></div>
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Wind Direction</label>
                     <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.windDir} onChange={(e) => update('windDir', e.target.value)}>
                       <option value="">Select...</option>
                       {['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                 </div>
-                 <div>
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Visibility (km)</label>
                     <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.visibility} onChange={(e) => update('visibility', e.target.value)}>
                        <option value="">Select...</option>
                        {[1, 3, 5, 10, 15, 20, 25, 30, '30+'].map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
-                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Weather Notes</label>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="General observations..." value={formData.weatherText} onChange={e => update('weatherText', e.target.value)} />
-              </div>
-              <div>
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Attach Forecast / Screenshot</label>
-                 {formData.weatherImage ? (
-                    <div className="relative group">
-                      <img src={formData.weatherImage} alt="Weather" className="w-full h-48 object-contain rounded-md border border-slate-200 bg-slate-50" />
-                      <button onClick={() => update('weatherImage', null)} className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full shadow-md hover:bg-red-700" title="Remove Image"><Trash2 className="h-4 w-4" /></button>
-                    </div>
-                 ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className="h-6 w-6 text-slate-400 mb-1" />
-                            <p className="text-xs text-slate-500"><span className="font-semibold">Click to upload</span> screenshot</p>
-                        </div>
-                        <input type="file" className="hidden" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => update('weatherImage', ev.target.result); reader.readAsDataURL(file); } }} />
-                    </label>
-                 )}
-              </div>
+                  </div>
+               </div>
+               <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Weather Notes</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.weatherText} onChange={e => update('weatherText', e.target.value)} /></div>
+               <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Attach Forecast / Screenshot</label>
+                  {formData.weatherImage ? (
+                    <div className="relative group"><img src={formData.weatherImage} alt="Weather" className="w-full h-48 object-contain rounded-md border border-slate-200 bg-slate-50" /><button onClick={() => update('weatherImage', null)} className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full shadow-md"><Trash2 className="h-4 w-4" /></button></div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50"><Upload className="h-6 w-6 text-slate-400 mb-1" /><span className="text-xs text-slate-500">Click to upload screenshot</span><input type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=(ev)=>update('weatherImage', ev.target.result); r.readAsDataURL(f); }}} /></label>
+                  )}
+               </div>
             </div>
           </div>
         )}
@@ -812,107 +666,167 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
         {step === 2 && (
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                <Crosshair className="h-5 w-5 text-emerald-700" />
-                MISSION
-              </h3>
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Crosshair className="h-5 w-5 text-emerald-700" /> MISSION</h3>
+               <DynamicSelect label="Mission Type" icon={FileText} {...getListProps('type', 'types')} />
+               <div className="mb-4">
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> No. of Flights</label>
+                 <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
+               </div>
+               
+               <div className="mb-4">
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-emerald-700" /> Distance to Operational Area (km)</label>
+                 <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.distance} onChange={(e) => update('distance', e.target.value)} placeholder="e.g. 1.2" />
+               </div>
 
-              <DynamicSelect label="Mission Type" icon={FileText} {...getListProps('type', 'types')} />
-
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
-                  <Plus className="h-3 w-3 text-emerald-700" />
-                  No. of Flights
-                </label>
-                <select className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>
-                  {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
-                <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">Approach and Departure</h4>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Altitude (m)</label>
-                        <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachAlt} onChange={(e) => update('approachAlt', e.target.value)}>
-                           <option value="">Select...</option>
-                           {Array.from({length: 120}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label>
-                        <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}>
-                           <option value="">Select...</option>
-                           {['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Emergency Landing Site</label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.emergencySite} onChange={(e) => update('emergencySite', e.target.value)} placeholder="Describe location..." />
-              </div>
-
-              <div>
-               <label className="font-bold text-slate-800 mb-2 block text-sm uppercase">Description / Objectives</label>
-               <textarea className="w-full p-3 border border-slate-300 rounded-md h-24 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Enter detailed mission objectives..." value={formData.description} onChange={e => update('description', e.target.value)} />
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase">
-                  <PenTool className="h-4 w-4 text-emerald-700" />
-                  MISSION AREA SKETCH
-                </h3>
-                <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} />
-              </div>
+               <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
+                 <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">Approach and Departure</h4>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Altitude (m)</label><select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachAlt} onChange={(e) => update('approachAlt', e.target.value)}><option value="">Select...</option>{Array.from({length: 120}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
+                    <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label><select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">Select...</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                 </div>
+               </div>
+               <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Emergency Landing Site</label><input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.emergencySite} onChange={(e) => update('emergencySite', e.target.value)} placeholder="Describe location..." /></div>
+               <div><label className="font-bold text-slate-800 mb-2 block text-sm uppercase">Description / Objectives</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-24" value={formData.description} onChange={e => update('description', e.target.value)} /></div>
+               <div className="space-y-3">
+                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase"><PenTool className="h-4 w-4 text-emerald-700" /> MISSION AREA SKETCH</h3>
+                 <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} />
+               </div>
             </div>
           </div>
         )}
 
         {step === 3 && (
-          <div className="bg-white p-5 rounded-md border shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2"><AlertTriangle className="h-5 w-5 text-emerald-700" />RISK ASSESSMENT</h3>
-            {RISK_ITEMS.map(item => {
+          <div className="space-y-4">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-md text-emerald-900 text-sm mb-4">
+              <strong>Assessment Required:</strong> Select all hazards present. Mitigation strategies are mandatory for Medium and High risk items.
+            </div>
+            {RISK_ITEMS.map((item) => {
               const riskData = formData.risks[item] || { checked: false };
               return (
-                <div key={item} className={`border rounded p-3 ${riskData.checked ? 'border-emerald-500 bg-emerald-50' : ''}`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" className="accent-emerald-700 w-5 h-5" checked={riskData.checked} onChange={(e) => handleRiskChange(item, 'checked', e.target.checked)} />
+                <div key={item} className={`bg-white rounded-md border shadow-sm overflow-hidden transition-all ${riskData.checked ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200'}`}>
+                  <label className="flex items-center p-4 cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" className="w-5 h-5 accent-emerald-700 rounded mr-3" checked={riskData.checked} onChange={(e) => handleRiskChange(item, 'checked', e.target.checked)} />
                     <span className={`flex-1 font-medium ${riskData.checked ? 'text-slate-900' : 'text-slate-600'}`}>{item}</span>
                     {riskData.checked && <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${riskData.level === 'High' ? 'bg-red-100 text-red-700' : riskData.level === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>{riskData.level || 'NO LEVEL'}</span>}
                   </label>
                   {riskData.checked && (
-                    <div className="mt-3 space-y-3 pl-8">
-                      <select className="w-full p-2 border rounded text-sm" value={riskData.level} onChange={(e) => handleRiskChange(item, 'level', e.target.value)}>
-                        <option value="">Level...</option>
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                      </select>
-                      <textarea className="w-full p-2 border rounded text-sm" placeholder="Hazard..." value={riskData.desc} onChange={(e) => handleRiskChange(item, 'desc', e.target.value)} />
-                      <textarea className="w-full p-2 border rounded text-sm" placeholder="Mitigation..." value={riskData.mitigation} onChange={(e) => handleRiskChange(item, 'mitigation', e.target.value)} />
+                    <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Risk Level</label><select className="w-full p-2 border border-slate-300 rounded bg-white text-sm" value={riskData.level || ''} onChange={(e) => handleRiskChange(item, 'level', e.target.value)}><option value="">Select...</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label><textarea className="w-full p-2 border border-slate-300 rounded bg-white text-sm" rows={2} value={riskData.desc || ''} onChange={(e) => handleRiskChange(item, 'desc', e.target.value)} /></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mitigation</label><textarea className="w-full p-2 border border-slate-300 rounded bg-white text-sm" rows={2} value={riskData.mitigation || ''} onChange={(e) => handleRiskChange(item, 'mitigation', e.target.value)} /></div>
                     </div>
                   )}
                 </div>
               );
             })}
+            
+            <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm mt-6">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+                <FileCheck className="h-5 w-5 text-emerald-700" />
+                PRE-FLIGHT CHECKLIST
+              </h3>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">COMPLETED CHECKLIST</label>
+                <label className="flex items-center cursor-pointer bg-slate-50 p-3 rounded border border-slate-200 hover:bg-slate-100 transition-colors">
+                  <input type="checkbox" className="w-5 h-5 accent-emerald-700 rounded mr-3" checked={formData.preflightCompleted || false} onChange={(e) => update('preflightCompleted', e.target.checked)} />
+                  <span className="text-sm font-medium text-slate-700">I have completed the pre-flight checklist</span>
+                </label>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">ISSUES / CONCERNS</label>
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.preflightIssues || ''} onChange={(e) => update('preflightIssues', e.target.value)} placeholder="Note any issues or concerns here..." />
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-20 shadow-lg">
         <div className="max-w-3xl mx-auto flex gap-4">
-          {step > 1 && (
-             <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md transition-colors uppercase tracking-wide text-sm">BACK</button>
-          )}
-          {step < 3 ? (
-            <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-md shadow-md transition-colors uppercase tracking-wide text-sm">NEXT</button>
-          ) : (
-            <button onClick={saveMission} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-md flex justify-center items-center gap-2 transition-colors uppercase tracking-wide text-sm"><Save className="h-5 w-5" /> SAVE MISSION</button>
-          )}
+          {step > 1 && <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md uppercase tracking-wide text-sm">Back</button>}
+          {step < 3 ? <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-md shadow-md uppercase tracking-wide text-sm">Next</button> : <button onClick={saveMission} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-md flex justify-center items-center gap-2 uppercase tracking-wide text-sm"><Save className="h-5 w-5" /> Save Mission</button>}
         </div>
       </div>
+    </div>
+  );
+};
+
+const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup, onRestore }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // SORTED: Newest First
+  const filteredMissions = missions.filter(m => 
+    (m.location && m.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (m.pilot && m.pilot.toLowerCase().includes(searchTerm.toLowerCase()))
+  ).sort((a,b) => new Date(b.start) - new Date(a.start));
+
+  return (
+    <div className="p-4 max-w-4xl mx-auto space-y-6 pb-20">
+      <header className="flex justify-between items-center bg-emerald-900 text-white p-6 rounded-md shadow-lg">
+        <div><h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO FLIGHT LOG</h1><p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">Fishery Officer Field Unit</p></div>
+      </header>
+
+      <div className="flex gap-3">
+        <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+         <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
+        <button onClick={onBackup} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
+        <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
+          <Upload className="h-4 w-4 text-amber-600" /> Restore Data
+          <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+        </label>
+      </div>
+
+      {/* SEARCH BAR */}
+      <div className="relative">
+         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+         <input 
+           type="text" 
+           placeholder="Search site or pilot..." 
+           className="w-full pl-10 p-3 rounded-md border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+           value={searchTerm}
+           onChange={(e) => setSearchTerm(e.target.value)}
+         />
+      </div>
+
+      <div className="border-b border-slate-200 pb-2 flex justify-between items-end">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wide">Recorded Missions</h2>
+        <span className="text-xs text-slate-400">{filteredMissions.length} RECORDS</span>
+      </div>
+
+      {filteredMissions.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-md border-2 border-dashed border-slate-200"><Crosshair className="h-12 w-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500 font-medium">No mission data found.</p></div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+          {filteredMissions.map(mission => {
+            return (
+              <div key={mission.id} className="bg-white rounded-md shadow-sm border border-slate-200 overflow-hidden flex flex-col sm:flex-row">
+                <div className="bg-slate-100 w-full sm:w-32 h-32 sm:h-auto flex-shrink-0 flex items-center justify-center border-b sm:border-b-0 sm:border-r border-slate-200">
+                  {mission.sketch ? <img src={mission.sketch} alt="Map" className="w-full h-full object-cover" /> : <div className="text-slate-300 flex flex-col items-center"><ImageIcon className="h-8 w-8 mb-1" /><span className="text-[10px] font-bold uppercase">No Map</span></div>}
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-slate-800 text-lg leading-tight">{mission.location}</h3>
+                      <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded">{mission.opCategory || 'Basic'}</span>
+                    </div>
+                    <div className="text-sm text-slate-600 space-y-1 mb-4">
+                      <div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-emerald-600" /><span>{formatDateTime24h(mission.start)}</span></div>
+                      <div className="flex items-center gap-2"><Users className="h-3 w-3 text-emerald-600" /><span>{mission.pilot}</span></div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-auto">
+                    <button onClick={() => onEdit(mission)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold uppercase border border-slate-200 flex items-center justify-center gap-2"><Edit2 className="h-3 w-3" /> Edit</button>
+                    <button onClick={() => onDelete(mission.id)} className="flex-1 bg-white hover:bg-red-50 text-red-600 py-2 rounded text-xs font-bold uppercase border border-red-100 flex items-center justify-center gap-2"><Trash2 className="h-3 w-3" /> Delete</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -920,95 +834,125 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
 export default function App() {
   const [view, setView] = useState('dashboard');
   const [missions, setMissions] = useState([]);
-  const [editing, setEditing] = useState(null);
+  const [editingMission, setEditingMission] = useState(null);
   const [lists, setLists] = useState(DEFAULT_LISTS);
-  const [prompt, setPrompt] = useState(null);
-  
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
   useEffect(() => {
-    (async () => {
+    const loadData = async () => {
       try {
-        setMissions(await db.missions.toArray());
-        const s = await db.settings.get('customLists');
-        if(s) setLists(p => ({ ...DEFAULT_LISTS, ...s.value }));
-      } catch(e) { console.error(e); }
-    })();
+        const savedMissions = await db.missions.toArray();
+        setMissions(savedMissions);
+        const savedLists = await db.settings.get('customLists');
+        if (savedLists) {
+           setLists(prev => ({ 
+             ...DEFAULT_LISTS, 
+             ...savedLists.value,
+             opCategories: (savedLists.value.opCategories && savedLists.value.opCategories.length > 1) 
+                ? savedLists.value.opCategories 
+                : DEFAULT_LISTS.opCategories,
+             referenceGpsUnits: savedLists.value.referenceGpsUnits || DEFAULT_LISTS.referenceGpsUnits
+           }));
+        }
+      } catch (error) { console.error(error); }
+    };
+    loadData();
   }, []);
 
   useEffect(() => {
-    const h = e => { e.preventDefault(); setPrompt(e); };
-    window.addEventListener('beforeinstallprompt', h);
-    return () => window.removeEventListener('beforeinstallprompt', h);
+    const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
-
-  const updateList = async (k, v, a) => {
-    const n = { ...lists };
-    const c = n[k] || [];
-    if(a==='add' && !c.includes(v)) n[k] = [...c, v];
-    else if(a==='del') n[k] = c.filter(x => x !== v);
-    setLists(n); await db.settings.put({ key: 'customLists', value: n });
-  };
 
   const handleInstall = () => {
-    if (prompt) {
-      prompt.prompt();
-      prompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') setPrompt(null);
-      });
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => { setDeferredPrompt(null); });
     }
   };
 
+  const handleUpdateList = async (key, value, action) => {
+    const newLists = { ...lists };
+    const current = newLists[key] || [];
+    if (action === 'add' && !current.includes(value)) newLists[key] = [...current, value];
+    else if (action === 'del') newLists[key] = current.filter(x => x !== value);
+    setLists(newLists);
+    await db.settings.put({ key: 'customLists', value: newLists });
+  };
+
+  const handleSaveMission = async (mission) => {
+    try {
+      await db.missions.put(mission);
+      const allMissions = await db.missions.toArray();
+      setMissions(allMissions);
+      setEditingMission(null);
+      setView('dashboard');
+    } catch (error) { alert("Failed to save."); }
+  };
+
+  const handleEditStart = (mission) => { setEditingMission(mission); setView('form'); };
+
+  const handleDeleteMission = async (id) => {
+    if (confirm("Are you sure you want to delete this mission record?")) {
+      await db.missions.delete(id);
+      const allMissions = await db.missions.toArray();
+      setMissions(allMissions);
+    }
+  };
+
+  const handleRestore = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (data.missions && Array.isArray(data.missions)) {
+          if(confirm(`Restore ${data.missions.length} missions? This will overwrite current data.`)) {
+             await db.transaction('rw', db.missions, db.settings, async () => {
+                await db.missions.clear();
+                await db.missions.bulkPut(data.missions);
+                if(data.lists) {
+                   await db.settings.put({ key: 'customLists', value: data.lists });
+                   setLists(data.lists);
+                }
+             });
+             const allMissions = await db.missions.toArray();
+             setMissions(allMissions);
+             alert("Restored successfully.");
+          }
+        } else alert("Invalid backup file.");
+      } catch (err) { alert("Error reading file."); }
+    };
+    reader.readAsText(file);
+    e.target.value = null; 
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-      {view === 'dashboard' ? (
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+      {view === 'dashboard' && (
         <Dashboard 
           missions={missions} 
-          onCreateNew={() => { setEditing(null); setView('form'); }} 
-          onEdit={(m) => { setEditing(m); setView('form'); }} 
-          onDelete={async (id) => {
-             if(confirm("Delete?")) { 
-               await db.missions.delete(id); 
-               setMissions(await db.missions.toArray()); 
-             } 
-          }}
+          onCreateNew={() => { setEditingMission(null); setView('form'); }} 
+          onEdit={handleEditStart}
+          onDelete={handleDeleteMission}
           onExport={() => exportToCSV(missions)}
           onBackup={() => backupData(missions, lists)}
-          onRestore={(e) => {
-             const f = e.target.files[0];
-             if(f) {
-                const r = new FileReader();
-                r.onload = async ev => {
-                   try {
-                     const d = JSON.parse(ev.target.result);
-                     if(confirm(`Restore ${d.missions.length}?`)){
-                        await db.missions.clear();
-                        await db.missions.bulkPut(d.missions);
-                        if(d.lists){
-                           await db.settings.put({key:'customLists', value:d.lists});
-                           setLists(d.lists);
-                        }
-                        setMissions(await db.missions.toArray());
-                     }
-                   } catch(err) { alert("Error reading file"); }
-                };
-                r.readAsText(f);
-                e.target.value=null;
-             }
-          }}
-        />
-      ) : (
-        <MissionForm 
-          initialData={editing} 
-          onSave={async m => { await db.missions.put(m); setMissions(await db.missions.toArray()); setView('dashboard'); }} 
-          onCancel={() => setView('dashboard')} 
-          lists={lists} 
-          onUpdateList={updateList} 
+          onRestore={handleRestore}
         />
       )}
-      {prompt && (
-        <button 
-          onClick={handleInstall} 
-          className="fixed bottom-4 right-4 bg-emerald-900 text-white px-4 py-3 rounded-lg shadow-xl font-bold flex items-center gap-2 animate-bounce z-50"
-        >
+      {view === 'form' && (
+        <MissionForm 
+          initialData={editingMission}
+          onSave={handleSaveMission} 
+          onCancel={() => setView('dashboard')}
+          lists={lists}
+          onUpdateList={handleUpdateList}
+        />
+      )}
+      {deferredPrompt && (
+        <button onClick={handleInstall} className="fixed bottom-4 right-4 z-50 bg-emerald-900 text-white px-4 py-3 rounded-lg shadow-2xl font-bold flex items-center gap-2 hover:bg-emerald-950 transition-all border-2 border-emerald-400 animate-bounce">
           <Download className="h-5 w-5" /> INSTALL APP
         </button>
       )}
