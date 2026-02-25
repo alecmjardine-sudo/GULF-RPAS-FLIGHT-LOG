@@ -113,6 +113,7 @@ const exportToCSV = (missions) => {
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
       "Preflight Completed", "Preflight Issues",
+      "Outcomes/Summary", "Incidents/Maintenance",
       "Description", "Risk Summary", "Map Sketch Data"
     ];
 
@@ -153,6 +154,8 @@ const exportToCSV = (missions) => {
         m.emergencySite,
         m.preflightCompleted ? 'Yes' : 'No',
         m.preflightIssues,
+        m.outcomesSummary,
+        m.incidentsMaintenance,
         m.description,
         formatRisks(m.risks),
         m.sketch
@@ -444,6 +447,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       approachAlt: '', approachRoute: '', emergencySite: '',
       secondaryLat: '', secondaryLng: '', referenceGpsUnit: '',
       preflightCompleted: false, preflightIssues: '',
+      outcomesSummary: '', incidentsMaintenance: '',
       sketch: null, weatherText: '', weatherImage: null, risks: {}
     };
   });
@@ -539,7 +543,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                 <MapPin className="h-5 w-5 text-emerald-700" />
                 TIME & LOCATION
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Start (24h)</label>
                   <input type="datetime-local" className="w-full p-3 border border-slate-300 rounded bg-slate-50" value={formData.start} onChange={e => update('start', e.target.value)} />
@@ -660,6 +664,21 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                   )}
                </div>
             </div>
+            
+            <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                 <FileText className="h-5 w-5 text-emerald-700" />
+                 AFTER MISSION REPORT
+               </h3>
+               <div>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Outcomes/Summary</label>
+                 <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.outcomesSummary || ''} onChange={(e) => update('outcomesSummary', e.target.value)} placeholder="Mission outcomes..." />
+               </div>
+               <div>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Incidents/Maintenance</label>
+                 <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.incidentsMaintenance || ''} onChange={(e) => update('incidentsMaintenance', e.target.value)} placeholder="Any incidents or maintenance required..." />
+               </div>
+            </div>
           </div>
         )}
 
@@ -763,7 +782,15 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup
   return (
     <div className="p-4 max-w-4xl mx-auto space-y-6 pb-20">
       <header className="flex justify-between items-center bg-emerald-900 text-white p-6 rounded-md shadow-lg">
-        <div><h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO FLIGHT LOG</h1><p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">Fishery Officer Field Unit</p></div>
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO FLIGHT LOG</h1>
+          <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">Fishery Officer Field Unit</p>
+          <div className="text-[10px] text-emerald-300 mt-2 space-y-0.5">
+            <p>Compliant with CARs Part IX - Transport Canada and DFO Policy Draft</p>
+            <p>Regional RPAS program coordinator: Philip Bouma</p>
+            <p>Chief of Enforcement Operations: Stephan Thibodeau</p>
+          </div>
+        </div>
       </header>
 
       <div className="flex gap-3">
@@ -844,6 +871,7 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
+        // FIX: Force merge opCategories from DEFAULT_LISTS if they are missing or incomplete in the saved DB
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
