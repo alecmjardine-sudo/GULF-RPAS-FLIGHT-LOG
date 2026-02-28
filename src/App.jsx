@@ -4,7 +4,7 @@ import {
   Crosshair, MapPin, FileText, AlertTriangle, Download, Trash2, Plus, Save, 
   ArrowLeft, Navigation, Users, Eye, Box, PenTool, Image as ImageIcon, 
   Eraser, Edit2, Calendar, Database, Upload, Cloud, Radio, FileCheck, Wind, 
-  Thermometer, Eye as VisibilityIcon, Activity, Search
+  Thermometer, Eye as VisibilityIcon, Activity, Search, Printer, Globe
 } from 'lucide-react';
 
 /**
@@ -73,7 +73,7 @@ const getCoordinates = (callback) => {
   });
 };
 
-// --- CSV EXPORT FUNCTION ---
+// --- CSV EXPORT FUNCTION (Images Removed) ---
 const exportToCSV = (missions) => {
   if (!missions || missions.length === 0) {
     alert("No missions to export.");
@@ -114,10 +114,12 @@ const exportToCSV = (missions) => {
       "Approach Alt", "Approach Route", "Emergency Site",
       "Preflight Completed", "Preflight Issues",
       "Outcomes/Summary", "Incidents/Maintenance",
-      "Description", "Risk Summary", "Map Sketch Data"
+      "Description", "Risk Summary"
     ];
 
-    const rows = missions.map(m => {
+    const sortedMissions = [...missions].sort((a, b) => new Date(b.start) - new Date(a.start));
+
+    const rows = sortedMissions.map(m => {
       const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
 
       return [
@@ -157,8 +159,7 @@ const exportToCSV = (missions) => {
         m.outcomesSummary,
         m.incidentsMaintenance,
         m.description,
-        formatRisks(m.risks),
-        m.sketch
+        formatRisks(m.risks)
       ].map(escapeCSV).join(",");
     });
 
@@ -177,6 +178,82 @@ const exportToCSV = (missions) => {
     console.error("Export Error:", err);
     alert("Failed to generate CSV. Check console for details.\nError: " + err.message);
   }
+};
+
+// --- FULL HTML REPORT EXPORT ---
+const exportToHTML = (missions) => {
+  if (!missions || missions.length === 0) {
+    alert("No missions to export.");
+    return;
+  }
+
+  const sortedMissions = [...missions].sort((a, b) => new Date(b.start) - new Date(a.start));
+
+  let html = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>DFO Full Mission Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f1f5f9; color: #333; padding: 20px; }
+      .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+      .header { border-bottom: 3px solid #064e3b; padding-bottom: 10px; margin-bottom: 30px; }
+      h1 { color: #064e3b; margin: 0; }
+      .mission-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 30px; background-color: #f8fafc; page-break-inside: avoid; }
+      .mission-title { font-size: 1.25rem; font-weight: bold; color: #0f172a; margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem; }
+      th, td { padding: 8px 12px; border: 1px solid #e2e8f0; text-align: left; }
+      th { background-color: #e2e8f0; width: 30%; color: #334155; }
+      td { background-color: #fff; }
+      .map-container { text-align: center; margin-top: 15px; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; }
+      .map-container img { max-width: 100%; max-height: 400px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>DFO Flight Log - Full Report</h1>
+        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+  `;
+
+  sortedMissions.forEach(m => {
+    const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'})`).join(', ') : 'None';
+    
+    html += `
+      <div class="mission-card">
+        <h2 class="mission-title">${m.location || 'Unknown Location'} - ${formatDateTime24h(m.start)}</h2>
+        <table>
+          <tbody>
+            <tr><th>Mission ID</th><td>${m.id || 'N/A'}</td></tr>
+            <tr><th>Pilot / RPAS</th><td>${m.pilot || 'N/A'} / ${m.rpas || 'N/A'}</td></tr>
+            <tr><th>Op Category</th><td>${m.opCategory || 'Basic'}</td></tr>
+            <tr><th>Coordinates</th><td>Lat: ${m.coords?.lat || ''}, Lng: ${m.coords?.lng || ''}</td></tr>
+            <tr><th>Weather</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'}</td></tr>
+            <tr><th>Outcomes</th><td>${m.outcomesSummary || 'N/A'}</td></tr>
+            <tr><th>Risks Flagged</th><td>${risks || 'None'}</td></tr>
+          </tbody>
+        </table>
+        ${m.sketch ? `<div class="map-container"><h4>Map Sketch</h4><img src="${m.sketch}" alt="Map Sketch" /></div>` : '<p style="text-align:center; color:#94a3b8; font-style:italic;">No Map Sketch Available</p>'}
+      </div>
+    `;
+  });
+
+  html += `
+    </div>
+  </body>
+  </html>
+  `;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `dfo_full_report_${new Date().toISOString().slice(0,10)}.html`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 const backupData = async (missions, lists) => {
@@ -544,13 +621,13 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                 TIME & LOCATION
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="w-full overflow-hidden">
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Start (24h)</label>
-                  <input type="datetime-local" className="w-full p-3 border border-slate-300 rounded bg-slate-50" value={formData.start} onChange={e => update('start', e.target.value)} />
+                  <input type="datetime-local" className="w-full p-2 text-sm border border-slate-300 rounded bg-slate-50" style={{ maxWidth: '100%', boxSizing: 'border-box' }} value={formData.start} onChange={e => update('start', e.target.value)} />
                 </div>
-                <div>
+                <div className="w-full overflow-hidden">
                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">End (24h)</label>
-                  <input type="datetime-local" className="w-full p-3 border border-slate-300 rounded bg-slate-50" value={formData.end} onChange={e => update('end', e.target.value)} />
+                  <input type="datetime-local" className="w-full p-2 text-sm border border-slate-300 rounded bg-slate-50" style={{ maxWidth: '100%', boxSizing: 'border-box' }} value={formData.end} onChange={e => update('end', e.target.value)} />
                 </div>
               </div>
               <DynamicSelect label="Location / Site Name" icon={null} {...getListProps('location', 'locations')} />
@@ -770,7 +847,118 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
   );
 };
 
-const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup, onRestore }) => {
+// --- NEW PRINT VIEW COMPONENT ---
+const PrintMissionView = ({ mission, onBack }) => {
+  if (!mission) return null;
+
+  return (
+    <div className="min-h-screen bg-white text-black font-sans pb-20">
+      <div className="print:hidden bg-emerald-900 text-white p-4 flex justify-between items-center shadow-md">
+        <button onClick={onBack} className="flex items-center gap-2 font-bold hover:text-emerald-200 transition-colors">
+          <ArrowLeft className="h-5 w-5" /> Back
+        </button>
+        <button onClick={() => window.print()} className="bg-white text-emerald-900 px-4 py-2 rounded font-bold flex items-center gap-2 hover:bg-emerald-50 transition-colors shadow-sm">
+          <Printer className="h-5 w-5" /> Print Report
+        </button>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="border-b-2 border-slate-800 pb-4 mb-6">
+          <h1 className="text-2xl font-bold uppercase tracking-wider">DFO Flight Log - Mission Report</h1>
+          <p className="text-sm text-slate-600 mt-1">Mission ID: {mission.id}</p>
+          <div className="text-[10px] text-slate-500 mt-2 space-y-0.5">
+            <p>Compliant with CARs Part IX - Transport Canada and DFO Policy Draft</p>
+            <p>Regional RPAS program coordinator: Philip Bouma</p>
+            <p>Chief of Enforcement Operations: Ulysse Brideau</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Location & Time</h3>
+            <p className="text-sm mb-1"><strong>Site:</strong> {mission.location}</p>
+            <p className="text-sm mb-1"><strong>Start:</strong> {formatDateTime24h(mission.start)}</p>
+            <p className="text-sm mb-1"><strong>End:</strong> {formatDateTime24h(mission.end)}</p>
+            <p className="text-sm mb-1"><strong>Primary GPS:</strong> {mission.coords?.lat || 'N/A'}, {mission.coords?.lng || 'N/A'}</p>
+            {(mission.secondaryLat || mission.secondaryLng) && (
+              <p className="text-sm mb-1"><strong>Ref GPS:</strong> {mission.secondaryLat}, {mission.secondaryLng} ({mission.referenceGpsUnit})</p>
+            )}
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Operational Resources</h3>
+            <p className="text-sm mb-1"><strong>Pilot:</strong> {mission.pilot}</p>
+            <p className="text-sm mb-1"><strong>RPAS:</strong> {mission.rpas}</p>
+            <p className="text-sm mb-1"><strong>Op Category:</strong> {mission.opCategory || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Payload:</strong> {mission.payload || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Observer:</strong> {mission.observer || 'N/A'}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Details</h3>
+            <p className="text-sm mb-1"><strong>Type:</strong> {mission.type}</p>
+            <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
+            <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
+            <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
+            <p className="text-sm mb-1"><strong>Aerodromes:</strong> {Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None')}</p>
+            <p className="text-sm mb-1"><strong>Proximity:</strong> {mission.proximity || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Emergency Site:</strong> {mission.emergencySite || 'N/A'}</p>
+            <p className="text-sm mb-1 mt-2"><strong>Objectives:</strong> {mission.description || 'N/A'}</p>
+          </div>
+          <div>
+             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Weather Conditions</h3>
+             <p className="text-sm mb-1"><strong>Temp:</strong> {mission.temperature ? `${mission.temperature}°C` : 'N/A'}</p>
+             <p className="text-sm mb-1"><strong>Wind:</strong> {mission.windSpeed ? `${mission.windSpeed} km/h ${mission.windDir}` : 'N/A'}</p>
+             <p className="text-sm mb-1"><strong>Visibility:</strong> {mission.visibility ? `${mission.visibility} km` : 'N/A'}</p>
+             <p className="text-sm mb-1 mt-2"><strong>Notes:</strong> {mission.weatherText || 'None'}</p>
+             
+             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2 mt-4">Post-Flight</h3>
+             <p className="text-sm mb-1"><strong>Preflight Checked:</strong> {mission.preflightCompleted ? 'Yes' : 'No'}</p>
+             <p className="text-sm mb-1"><strong>Issues:</strong> {mission.preflightIssues || 'None'}</p>
+             <p className="text-sm mb-1"><strong>Outcomes:</strong> {mission.outcomesSummary || 'None'}</p>
+             <p className="text-sm mb-1"><strong>Maintenance:</strong> {mission.incidentsMaintenance || 'None'}</p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Risk Assessment</h3>
+          {(!mission.risks || Object.keys(mission.risks).filter(k => mission.risks[k].checked).length === 0) ? (
+            <p className="text-sm italic text-slate-500">No risks flagged.</p>
+          ) : (
+            <table className="w-full text-sm border-collapse border border-slate-300">
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-300 p-2 text-left">Risk Factor</th>
+                  <th className="border border-slate-300 p-2 text-left w-24">Level</th>
+                  <th className="border border-slate-300 p-2 text-left">Mitigation Strategy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(mission.risks).filter(([_, v]) => v.checked).map(([k, v]) => (
+                  <tr key={k}>
+                    <td className="border border-slate-300 p-2 font-medium">{k}</td>
+                    <td className="border border-slate-300 p-2">{v.level || '-'}</td>
+                    <td className="border border-slate-300 p-2">{v.mitigation || 'None specified'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {mission.sketch && (
+          <div className="mt-8 page-break-inside-avoid">
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Area Map</h3>
+            <img src={mission.sketch} alt="Mission Map" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onBackup, onRestore, onPrint }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   // SORTED: Newest First
@@ -788,7 +976,7 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup
           <div className="text-[10px] text-emerald-300 mt-2 space-y-0.5">
             <p>Compliant with CARs Part IX - Transport Canada and DFO Policy Draft</p>
             <p>Regional RPAS program coordinator: Philip Bouma</p>
-            <p>Chief of Enforcement Operations: Stephan Thibodeau</p>
+            <p>Chief of Enforcement Operations: Ulysse Brideau</p>
           </div>
         </div>
       </header>
@@ -797,8 +985,9 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup
         <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-         <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
+        <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> Full Report</button>
         <button onClick={onBackup} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
         <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
           <Upload className="h-4 w-4 text-amber-600" /> Restore Data
@@ -844,9 +1033,10 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onBackup
                       <div className="flex items-center gap-2"><Users className="h-3 w-3 text-emerald-600" /><span>{mission.pilot}</span></div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-auto">
-                    <button onClick={() => onEdit(mission)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold uppercase border border-slate-200 flex items-center justify-center gap-2"><Edit2 className="h-3 w-3" /> Edit</button>
-                    <button onClick={() => onDelete(mission.id)} className="flex-1 bg-white hover:bg-red-50 text-red-600 py-2 rounded text-xs font-bold uppercase border border-red-100 flex items-center justify-center gap-2"><Trash2 className="h-3 w-3" /> Delete</button>
+                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 mt-auto">
+                    <button onClick={() => onEdit(mission)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold uppercase border border-slate-200 flex items-center justify-center gap-1 transition-colors"><Edit2 className="h-3 w-3" /> Edit</button>
+                    <button onClick={() => onPrint(mission)} className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded text-xs font-bold uppercase border border-emerald-200 flex items-center justify-center gap-1 transition-colors"><Printer className="h-3 w-3" /> Print</button>
+                    <button onClick={() => onDelete(mission.id)} className="flex-1 bg-white hover:bg-red-50 text-red-600 py-2 rounded text-xs font-bold uppercase border border-red-100 flex items-center justify-center gap-1 transition-colors"><Trash2 className="h-3 w-3" /> Delete</button>
                   </div>
                 </div>
               </div>
@@ -871,7 +1061,6 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
-        // FIX: Force merge opCategories from DEFAULT_LISTS if they are missing or incomplete in the saved DB
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
@@ -966,8 +1155,10 @@ export default function App() {
           onEdit={handleEditStart}
           onDelete={handleDeleteMission}
           onExport={() => exportToCSV(missions)}
+          onExportFull={() => exportToHTML(missions)}
           onBackup={() => backupData(missions, lists)}
           onRestore={handleRestore}
+          onPrint={(mission) => { setEditingMission(mission); setView('print'); }}
         />
       )}
       {view === 'form' && (
@@ -977,6 +1168,12 @@ export default function App() {
           onCancel={() => setView('dashboard')}
           lists={lists}
           onUpdateList={handleUpdateList}
+        />
+      )}
+      {view === 'print' && (
+        <PrintMissionView 
+          mission={editingMission} 
+          onBack={() => { setEditingMission(null); setView('dashboard'); }} 
         />
       )}
       {deferredPrompt && (
