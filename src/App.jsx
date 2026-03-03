@@ -108,7 +108,7 @@ const exportToCSV = (missions) => {
     const headers = [
       "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
       "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
-      "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", 
+      "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", "Work Element",
       "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
@@ -138,6 +138,7 @@ const exportToCSV = (missions) => {
         m.payload,
         m.opCategory,
         m.type,
+        m.workElement,
         m.flightCount || 1,
         m.distance,
         m.airspace,
@@ -197,29 +198,32 @@ const exportToHTML = (missions) => {
     <title>DFO Full Mission Report</title>
     <style>
       body { font-family: Arial, sans-serif; background-color: #f1f5f9; color: #333; padding: 20px; }
-      .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+      .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
       .header { border-bottom: 3px solid #064e3b; padding-bottom: 10px; margin-bottom: 30px; }
       h1 { color: #064e3b; margin: 0; }
-      .mission-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 30px; background-color: #f8fafc; page-break-inside: avoid; }
+      .mission-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 40px; background-color: #f8fafc; page-break-inside: avoid; }
       .mission-title { font-size: 1.25rem; font-weight: bold; color: #0f172a; margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
       table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem; }
-      th, td { padding: 8px 12px; border: 1px solid #e2e8f0; text-align: left; }
+      th, td { padding: 8px 12px; border: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
       th { background-color: #e2e8f0; width: 30%; color: #334155; }
       td { background-color: #fff; }
-      .map-container { text-align: center; margin-top: 15px; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; }
-      .map-container img { max-width: 100%; max-height: 400px; border-radius: 4px; }
+      .image-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
+      .img-box { border: 1px solid #e2e8f0; padding: 10px; background: #fff; text-align: center; border-radius: 4px; flex: 1; min-width: 250px; }
+      .img-box h4 { margin-top: 0; margin-bottom: 10px; font-size: 0.85rem; color: #64748b; text-transform: uppercase; }
+      .img-box img { max-width: 100%; max-height: 350px; border-radius: 4px; border: 1px solid #cbd5e1; }
     </style>
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <h1>DFO Flight Log - Full Report</h1>
+        <h1>DFO RPAS Flight Log - Full Report</h1>
         <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
       </div>
   `;
 
   sortedMissions.forEach(m => {
-    const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'})`).join(', ') : 'None';
+    const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'} - Mitigation: ${v.mitigation || 'None'})`).join('<br/>') : 'None';
+    const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join(', ') : (m.aerodromes || 'None');
     
     html += `
       <div class="mission-card">
@@ -227,15 +231,33 @@ const exportToHTML = (missions) => {
         <table>
           <tbody>
             <tr><th>Mission ID</th><td>${m.id || 'N/A'}</td></tr>
-            <tr><th>Pilot / RPAS</th><td>${m.pilot || 'N/A'} / ${m.rpas || 'N/A'}</td></tr>
-            <tr><th>Op Category</th><td>${m.opCategory || 'Basic'}</td></tr>
-            <tr><th>Coordinates</th><td>Lat: ${m.coords?.lat || ''}, Lng: ${m.coords?.lng || ''}</td></tr>
-            <tr><th>Weather</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'}</td></tr>
-            <tr><th>Outcomes</th><td>${m.outcomesSummary || 'N/A'}</td></tr>
-            <tr><th>Risks Flagged</th><td>${risks || 'None'}</td></tr>
+            <tr><th>Date & Time</th><td>Start: ${formatDateTime24h(m.start)}<br/>End: ${formatDateTime24h(m.end)}</td></tr>
+            <tr><th>Primary GPS</th><td>Lat: ${m.coords?.lat || '-'}, Lng: ${m.coords?.lng || '-'}</td></tr>
+            <tr><th>Secondary GPS</th><td>Lat: ${m.secondaryLat || '-'}, Lng: ${m.secondaryLng || '-'} (Ref Unit: ${m.referenceGpsUnit || 'N/A'})</td></tr>
+            <tr><th>Pilot / Observer</th><td>${m.pilot || 'N/A'} / ${m.observer || 'N/A'}</td></tr>
+            <tr><th>RPAS / Payload</th><td>${m.rpas || 'N/A'} / ${m.payload || 'N/A'}</td></tr>
+            <tr><th>Op Category / Mission Type</th><td>${m.opCategory || 'N/A'} / ${m.type || 'N/A'}</td></tr>
+            <tr><th>Work Element</th><td>${m.workElement || 'N/A'}</td></tr>
+            <tr><th>Flights / Distance</th><td>${m.flightCount || 1} flight(s) / ${m.distance || 'N/A'} km</td></tr>
+            <tr><th>Airspace</th><td>${m.airspace || 'N/A'} (${m.airspaceType || 'N/A'})</td></tr>
+            <tr><th>Aerodromes / Proximity</th><td>${aerodromeStr} / ${m.proximity || 'N/A'}</td></tr>
+            <tr><th>NOTAMS / NavCan Ref</th><td>${m.notams || 'None'} / ${m.navCanRef || 'N/A'}</td></tr>
+            <tr><th>Approach / Emergency Site</th><td>Alt: ${m.approachAlt || 'N/A'}m, Route: ${m.approachRoute || 'N/A'} / Site: ${m.emergencySite || 'None'}</td></tr>
+            <tr><th>Weather Conditions</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'} km</td></tr>
+            <tr><th>Weather Notes</th><td>${m.weatherText || 'None'}</td></tr>
+            <tr><th>Preflight Checklist</th><td>Completed: ${m.preflightCompleted ? 'Yes' : 'No'}<br/>Issues: ${m.preflightIssues || 'None'}</td></tr>
+            <tr><th>Mission Objectives</th><td>${m.description || 'None'}</td></tr>
+            <tr><th>Outcomes / Summary</th><td>${m.outcomesSummary || 'None'}</td></tr>
+            <tr><th>Incidents / Maintenance</th><td>${m.incidentsMaintenance || 'None'}</td></tr>
+            <tr><th>Risk Assessment</th><td>${risks || 'None'}</td></tr>
           </tbody>
         </table>
-        ${m.sketch ? `<div class="map-container"><h4>Map Sketch</h4><img src="${m.sketch}" alt="Map Sketch" /></div>` : '<p style="text-align:center; color:#94a3b8; font-style:italic;">No Map Sketch Available</p>'}
+        
+        <div class="image-grid">
+          ${m.sketch ? `<div class="img-box"><h4>Map Sketch</h4><img src="${m.sketch}" alt="Map Sketch" /></div>` : ''}
+          ${m.weatherImage ? `<div class="img-box"><h4>Weather Screenshot</h4><img src="${m.weatherImage}" alt="Weather Screenshot" /></div>` : ''}
+          ${m.navCanFile ? `<div class="img-box"><h4>Nav Canada Auth</h4><img src="${m.navCanFile}" alt="Nav Canada Auth" /></div>` : ''}
+        </div>
       </div>
     `;
   });
@@ -275,6 +297,7 @@ const DEFAULT_LISTS = {
   opCategories: ['Microdrone', 'Basic', 'Advanced', 'Level 1 Complex', 'SFOC'],
   observers: ['None'],
   types: ['Training', 'Enforcement', 'Search & Rescue', 'Habitat Survey'],
+  workElements: ['Striped Bass', 'Salmon', 'Lobster', 'Snow Crab', 'Ice Fishing', 'Habitat', 'Groundfish', 'Trout'],
   locations: [],
   airspaces: ['Class G', 'Class F', 'Class C', 'Class D', 'Class E'],
   aerodromes: [
@@ -516,7 +539,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       end: addMinutes(nowStr, 30),
       location: '', description: '', pilot: '', rpas: '', observer: '', 
       payload: '', opCategory: '', 
-      type: '', flightCount: 1, 
+      type: '', workElement: '', flightCount: 1, 
       airspace: '', airspaceType: '', aerodromes: [], proximity: '',
       distance: '', 
       notams: '', navCanRef: '', navCanFile: null,
@@ -561,10 +584,34 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       alert("Please enter at least a Location and Pilot name.");
       return;
     }
-    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits'];
+
+    // Hazard Mitigation Validation
+    const riskEntries = Object.entries(formData.risks || {});
+    for (let i = 0; i < riskEntries.length; i++) {
+      const [riskName, riskData] = riskEntries[i];
+      if (riskData.checked && (riskData.level === 'Medium' || riskData.level === 'High')) {
+        if (!riskData.mitigation || riskData.mitigation.trim() === '') {
+          alert(`Mitigation strategy is mandatory for ${riskData.level} risk item: ${riskName}`);
+          return;
+        }
+      }
+    }
+
+    // Pre-flight Validation
+    if (!formData.preflightCompleted) {
+      alert("You must complete and check off the pre-flight checklist before saving the mission.");
+      const preflightEl = document.getElementById('preflight-section');
+      if (preflightEl) {
+        preflightEl.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'workElements', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits'];
     const fieldMap = { 
       'pilots': 'pilot', 'rpas': 'rpas', 'observers': 'observer', 
       'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
+      'workElements': 'workElement',
       'locations': 'location', 'airspaces': 'airspace', 'aerodromes': 'aerodromes', 
       'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit'
     };
@@ -764,6 +811,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Crosshair className="h-5 w-5 text-emerald-700" /> MISSION</h3>
                <DynamicSelect label="Mission Type" icon={FileText} {...getListProps('type', 'types')} />
+               <DynamicSelect label="Work Element" icon={FileText} {...getListProps('workElement', 'workElements')} />
                <div className="mb-4">
                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> No. of Flights</label>
                  <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
@@ -816,7 +864,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
               );
             })}
             
-            <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm mt-6">
+            <div id="preflight-section" className="bg-white p-5 rounded-md border border-slate-200 shadow-sm mt-6">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
                 <FileCheck className="h-5 w-5 text-emerald-700" />
                 PRE-FLIGHT CHECKLIST
@@ -837,7 +885,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-20 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 shadow-lg" style={{ padding: '1rem', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <div className="max-w-3xl mx-auto flex gap-4">
           {step > 1 && <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md uppercase tracking-wide text-sm">Back</button>}
           {step < 3 ? <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-md shadow-md uppercase tracking-wide text-sm">Next</button> : <button onClick={saveMission} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-md flex justify-center items-center gap-2 uppercase tracking-wide text-sm"><Save className="h-5 w-5" /> Save Mission</button>}
@@ -847,7 +895,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
   );
 };
 
-// --- NEW PRINT VIEW COMPONENT ---
+// --- PRINT VIEW COMPONENT ---
 const PrintMissionView = ({ mission, onBack }) => {
   if (!mission) return null;
 
@@ -864,10 +912,10 @@ const PrintMissionView = ({ mission, onBack }) => {
 
       <div className="max-w-4xl mx-auto p-8">
         <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <h1 className="text-2xl font-bold uppercase tracking-wider">DFO Flight Log - Mission Report</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-wider">DFO RPAS Flight Log - Mission Report</h1>
           <p className="text-sm text-slate-600 mt-1">Mission ID: {mission.id}</p>
           <div className="text-[10px] text-slate-500 mt-2 space-y-0.5">
-            <p>Compliant with CARs Part IX - Transport Canada and DFO Policy Draft</p>
+            <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
             <p>Regional RPAS program coordinator: Philip Bouma</p>
             <p>Chief of Enforcement Operations: Ulysse Brideau</p>
           </div>
@@ -898,6 +946,7 @@ const PrintMissionView = ({ mission, onBack }) => {
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Details</h3>
             <p className="text-sm mb-1"><strong>Type:</strong> {mission.type}</p>
+            <p className="text-sm mb-1"><strong>Work Element:</strong> {mission.workElement || 'N/A'}</p>
             <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
             <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
             <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
@@ -947,12 +996,27 @@ const PrintMissionView = ({ mission, onBack }) => {
           )}
         </div>
 
-        {mission.sketch && (
-          <div className="mt-8 page-break-inside-avoid">
-            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Area Map</h3>
-            <img src={mission.sketch} alt="Mission Map" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
-          </div>
-        )}
+        <div className="mt-8 flex flex-col gap-6">
+          {mission.sketch && (
+            <div className="page-break-inside-avoid">
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Area Map</h3>
+              <img src={mission.sketch} alt="Mission Map" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
+            </div>
+          )}
+          {mission.weatherImage && (
+            <div className="page-break-inside-avoid">
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Weather Forecast / Screenshot</h3>
+              <img src={mission.weatherImage} alt="Weather Screenshot" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
+            </div>
+          )}
+          {mission.navCanFile && (
+            <div className="page-break-inside-avoid">
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">NAV Canada Authorization File</h3>
+              <img src={mission.navCanFile} alt="NAV Canada File" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
@@ -971,10 +1035,10 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
     <div className="p-4 max-w-4xl mx-auto space-y-6 pb-20">
       <header className="flex justify-between items-center bg-emerald-900 text-white p-6 rounded-md shadow-lg">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO FLIGHT LOG</h1>
+          <h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO RPAS FLIGHT LOG</h1>
           <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">Fishery Officer Field Unit</p>
           <div className="text-[10px] text-emerald-300 mt-2 space-y-0.5">
-            <p>Compliant with CARs Part IX - Transport Canada and DFO Policy Draft</p>
+            <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
             <p>Regional RPAS program coordinator: Philip Bouma</p>
             <p>Chief of Enforcement Operations: Ulysse Brideau</p>
           </div>
@@ -1054,6 +1118,7 @@ export default function App() {
   const [editingMission, setEditingMission] = useState(null);
   const [lists, setLists] = useState(DEFAULT_LISTS);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -1061,6 +1126,7 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
+        // FIX: Force merge opCategories from DEFAULT_LISTS if they are missing or incomplete in the saved DB
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
@@ -1068,7 +1134,10 @@ export default function App() {
              opCategories: (savedLists.value.opCategories && savedLists.value.opCategories.length > 1) 
                 ? savedLists.value.opCategories 
                 : DEFAULT_LISTS.opCategories,
-             referenceGpsUnits: savedLists.value.referenceGpsUnits || DEFAULT_LISTS.referenceGpsUnits
+             referenceGpsUnits: savedLists.value.referenceGpsUnits || DEFAULT_LISTS.referenceGpsUnits,
+             workElements: (savedLists.value.workElements && savedLists.value.workElements.length > 0)
+                ? savedLists.value.workElements
+                : DEFAULT_LISTS.workElements
            }));
         }
       } catch (error) { console.error(error); }
@@ -1079,6 +1148,14 @@ export default function App() {
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // iOS Detection for custom install prompt
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+    if (isIos && !isInStandaloneMode) {
+      setShowIosPrompt(true);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -1147,7 +1224,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 overscroll-none">
       {view === 'dashboard' && (
         <Dashboard 
           missions={missions} 
@@ -1176,10 +1253,25 @@ export default function App() {
           onBack={() => { setEditingMission(null); setView('dashboard'); }} 
         />
       )}
+      
+      {/* Android Install Prompt */}
       {deferredPrompt && (
         <button onClick={handleInstall} className="fixed bottom-4 right-4 z-50 bg-emerald-900 text-white px-4 py-3 rounded-lg shadow-2xl font-bold flex items-center gap-2 hover:bg-emerald-950 transition-all border-2 border-emerald-400 animate-bounce">
           <Download className="h-5 w-5" /> INSTALL APP
         </button>
+      )}
+
+      {/* Custom iOS Install Prompt */}
+      {showIosPrompt && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800 text-white p-4 shadow-2xl flex items-start gap-3 border-t border-slate-700" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+          <div className="flex-1">
+            <p className="font-bold text-sm mb-1">Install DFO RPAS Log</p>
+            <p className="text-slate-300 text-xs">To install this app on your iPhone, tap the <strong>Share</strong> icon below, then select <strong>Add to Home Screen</strong>.</p>
+          </div>
+          <button onClick={() => setShowIosPrompt(false)} className="text-slate-400 hover:text-white px-2 font-bold uppercase text-xs">
+            CLOSE
+          </button>
+        </div>
       )}
     </div>
   );
