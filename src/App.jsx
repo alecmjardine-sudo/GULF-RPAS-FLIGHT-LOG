@@ -4,7 +4,7 @@ import {
   Crosshair, MapPin, FileText, AlertTriangle, Download, Trash2, Plus, Save, 
   ArrowLeft, Navigation, Users, Eye, Box, PenTool, Image as ImageIcon, 
   Eraser, Edit2, Calendar, Database, Upload, Cloud, Radio, FileCheck, Wind, 
-  Thermometer, Eye as VisibilityIcon, Activity, Search, Printer, Globe
+  Thermometer, Eye as VisibilityIcon, Activity, Search, Printer, Globe, Undo2
 } from 'lucide-react';
 
 /**
@@ -108,7 +108,7 @@ const exportToCSV = (missions) => {
     const headers = [
       "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
       "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
-      "Pilot", "RPAS Model/Reg", "Observer", "Payload", "Op Category", "Mission Type", "Work Element",
+      "Pilot In Command", "Additional Pilots", "Camera Operators", "Observers", "RPAS Model/Reg", "Payload", "Op Category", "Mission Type", "Work Elements",
       "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
@@ -121,6 +121,10 @@ const exportToCSV = (missions) => {
 
     const rows = sortedMissions.map(m => {
       const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
+      const workElemStr = Array.isArray(m.workElements) ? m.workElements.join('; ') : (m.workElements || m.workElement || '');
+      const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join('; ') : '';
+      const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join('; ') : '';
+      const observersStr = Array.isArray(m.observers) ? m.observers.join('; ') : (m.observer || '');
 
       return [
         m.id,
@@ -133,12 +137,14 @@ const exportToCSV = (missions) => {
         m.secondaryLng,
         m.referenceGpsUnit,
         m.pilot,
+        addPilotsStr,
+        camOpsStr,
+        observersStr,
         m.rpas,
-        m.observer,
         m.payload,
         m.opCategory,
         m.type,
-        m.workElement,
+        workElemStr,
         m.flightCount || 1,
         m.distance,
         m.airspace,
@@ -224,7 +230,11 @@ const exportToHTML = (missions) => {
   sortedMissions.forEach(m => {
     const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'} - Mitigation: ${v.mitigation || 'None'})`).join('<br/>') : 'None';
     const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join(', ') : (m.aerodromes || 'None');
-    
+    const workElemStr = Array.isArray(m.workElements) ? m.workElements.join(', ') : (m.workElements || m.workElement || 'N/A');
+    const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join(', ') : 'None';
+    const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join(', ') : 'None';
+    const observersStr = Array.isArray(m.observers) ? m.observers.join(', ') : (m.observer || 'None');
+
     html += `
       <div class="mission-card">
         <h2 class="mission-title">${m.location || 'Unknown Location'} - ${formatDateTime24h(m.start)}</h2>
@@ -234,16 +244,19 @@ const exportToHTML = (missions) => {
             <tr><th>Date & Time</th><td>Start: ${formatDateTime24h(m.start)}<br/>End: ${formatDateTime24h(m.end)}</td></tr>
             <tr><th>Primary GPS</th><td>Lat: ${m.coords?.lat || '-'}, Lng: ${m.coords?.lng || '-'}</td></tr>
             <tr><th>Secondary GPS</th><td>Lat: ${m.secondaryLat || '-'}, Lng: ${m.secondaryLng || '-'} (Ref Unit: ${m.referenceGpsUnit || 'N/A'})</td></tr>
-            <tr><th>Pilot / Observer</th><td>${m.pilot || 'N/A'} / ${m.observer || 'N/A'}</td></tr>
+            <tr><th>Pilot In Command</th><td>${m.pilot || 'N/A'}</td></tr>
+            <tr><th>Additional Pilots</th><td>${addPilotsStr}</td></tr>
+            <tr><th>Camera Operators</th><td>${camOpsStr}</td></tr>
+            <tr><th>Observers</th><td>${observersStr}</td></tr>
             <tr><th>RPAS / Payload</th><td>${m.rpas || 'N/A'} / ${m.payload || 'N/A'}</td></tr>
             <tr><th>Op Category / Mission Type</th><td>${m.opCategory || 'N/A'} / ${m.type || 'N/A'}</td></tr>
-            <tr><th>Work Element</th><td>${m.workElement || 'N/A'}</td></tr>
+            <tr><th>Work Elements</th><td>${workElemStr}</td></tr>
             <tr><th>Flights / Distance</th><td>${m.flightCount || 1} flight(s) / ${m.distance || 'N/A'} km</td></tr>
             <tr><th>Airspace</th><td>${m.airspace || 'N/A'} (${m.airspaceType || 'N/A'})</td></tr>
             <tr><th>Aerodromes / Proximity</th><td>${aerodromeStr} / ${m.proximity || 'N/A'}</td></tr>
             <tr><th>NOTAMS / NavCan Ref</th><td>${m.notams || 'None'} / ${m.navCanRef || 'N/A'}</td></tr>
-            <tr><th>Approach / Emergency Site</th><td>Alt: ${m.approachAlt || 'N/A'}m, Route: ${m.approachRoute || 'N/A'} / Site: ${m.emergencySite || 'None'}</td></tr>
-            <tr><th>Weather Conditions</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'} km</td></tr>
+            <tr><th>Approach / Emergency Site</th><td>Alt: ${m.approachAlt || 'N/A'}, Route: ${m.approachRoute || 'N/A'} / Site: ${m.emergencySite || 'None'}</td></tr>
+            <tr><th>Weather Conditions</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'}</td></tr>
             <tr><th>Weather Notes</th><td>${m.weatherText || 'None'}</td></tr>
             <tr><th>Preflight Checklist</th><td>Completed: ${m.preflightCompleted ? 'Yes' : 'No'}<br/>Issues: ${m.preflightIssues || 'None'}</td></tr>
             <tr><th>Mission Objectives</th><td>${m.description || 'None'}</td></tr>
@@ -293,6 +306,8 @@ const backupData = async (missions, lists) => {
 const DEFAULT_LISTS = {
   rpas: ['Mavic 2 Enterprise', 'Matrice 300', 'Mini 3 Pro'],
   pilots: ['Officer Smith', 'Officer Jones'],
+  additionalPilots: [],
+  cameraOperators: [],
   payload: ['Visual', 'Thermal', 'LiDAR'],
   opCategories: ['Microdrone', 'Basic', 'Advanced', 'Level 1 Complex', 'SFOC'],
   observers: ['None'],
@@ -306,7 +321,13 @@ const DEFAULT_LISTS = {
     'Halifax (CYHZ) - 118.7', 'Sydney (CYQY) - 118.7', 'Yarmouth (CYQY) - 122.3', 'Greenwood (CYZX) - 119.5', 'Trenton (CYTN) - 122.8'
   ],
   airspaceTypes: ['Uncontrolled', 'Controlled', 'Restricted'],
-  referenceGpsUnits: []
+  referenceGpsUnits: [],
+  approachAlts: [],
+  emergencySites: [],
+  descriptions: [],
+  preflightIssuesList: [],
+  riskDescriptions: [],
+  riskMitigations: []
 };
 
 const RISK_ITEMS = [
@@ -323,12 +344,13 @@ const RISK_ITEMS = [
  * --- COMPONENTS ---
  */
 
-const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, multiple = false }) => {
+const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, multiple = false, className = "mb-4" }) => {
   const id = `list-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+  const [inputValue, setInputValue] = useState('');
   
   if (multiple) {
      return (
-        <div className="mb-4">
+        <div className={className}>
           <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
             {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
             {label}
@@ -341,31 +363,25 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                    <button onClick={() => {
                       const newValue = value.filter(i => i !== v);
                       onChange(newValue);
-                   }} className="hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+                   }} className="hover:text-red-600" title="Remove tag"><Trash2 className="h-3 w-3" /></button>
                  </span>
                ))}
             </div>
             <div className="flex gap-2 relative">
                <input
                 list={id}
-                className="flex-1 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                placeholder="Select or type..."
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (options && options.includes(val)) {
-                     const current = Array.isArray(value) ? value : [];
-                     if (!current.includes(val)) onChange([...current, val]);
-                     e.target.value = '';
-                  }
-                }}
+                className="flex-1 min-w-0 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                placeholder="Type and press + to add..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
-                    const val = e.target.value;
+                    const val = inputValue.trim();
                     if (val) {
                        const current = Array.isArray(value) ? value : [];
                        if (!current.includes(val)) onChange([...current, val]);
-                       e.target.value = '';
+                       setInputValue('');
                     }
                   }
                 }}
@@ -373,15 +389,44 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
               <datalist id={id}>
                 {options && options.map(opt => <option key={opt} value={opt} />)}
               </datalist>
+              <button
+                type="button"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                onClick={() => {
+                  const val = inputValue.trim();
+                  if (val) {
+                     const current = Array.isArray(value) ? value : [];
+                     if (!current.includes(val)) onChange([...current, val]);
+                     setInputValue('');
+                  }
+                }}
+                title="Add Entry"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+              {inputValue && options && options.includes(inputValue) && (
+                <button 
+                  onClick={() => {
+                    if (confirm(`Remove "${inputValue}" from your saved options list?`)) {
+                      onDelete(inputValue);
+                      setInputValue('');
+                    }
+                  }}
+                  className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300 shadow-sm"
+                  type="button"
+                  title="Delete from saved options"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            <p className="text-[10px] text-slate-500">Type and press Enter to add multiple entries.</p>
           </div>
         </div>
      )
   }
 
   return (
-    <div className="mb-4">
+    <div className={className}>
       <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
         {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
         {label}
@@ -389,7 +434,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
       <div className="flex gap-2 relative">
         <input
           list={id}
-          className="flex-1 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+          className="flex-1 min-w-0 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Select or type..."
@@ -402,10 +447,58 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
             onClick={() => onDelete(value)}
             className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
             type="button"
+            title="Delete from saved options"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         )}
+      </div>
+    </div>
+  );
+};
+
+// --- NEW COMPONENT FOR MULTILINE RETAINED TEXT ---
+const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete }) => {
+  return (
+    <div className="mb-4">
+      <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
+        {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
+        {label}
+      </label>
+      <div className="space-y-2">
+        {(options && options.length > 0) && (
+          <div className="flex gap-2">
+            <select 
+              className="flex-1 min-w-0 p-2 border border-slate-300 rounded-md bg-slate-50 text-xs text-slate-700"
+              onChange={(e) => {
+                if (e.target.value) {
+                  onChange(e.target.value);
+                  e.target.value = ""; 
+                }
+              }}
+            >
+              <option value="">Insert a previously saved entry...</option>
+              {options.map(opt => <option key={opt} value={opt}>{opt.substring(0, 60)}{opt.length > 60 ? '...' : ''}</option>)}
+            </select>
+            {value && options.includes(value) && (
+              <button 
+                onClick={() => onDelete(value)}
+                className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
+                type="button"
+                title="Delete this exact entry from saved list"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+        <textarea
+          className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+          rows={3}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type here..."
+        />
       </div>
     </div>
   );
@@ -416,6 +509,7 @@ const SketchPad = ({ onSave, initialImage }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#dc2626'); 
   const [backgroundImage, setBackgroundImage] = useState(initialImage || null);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -439,6 +533,13 @@ const SketchPad = ({ onSave, initialImage }) => {
     }
   }, [backgroundImage]);
 
+  const saveState = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      setHistory(prev => [...prev, canvas.toDataURL()]);
+    }
+  };
+
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     if (e.touches) {
@@ -448,6 +549,7 @@ const SketchPad = ({ onSave, initialImage }) => {
   };
 
   const startDraw = (e) => {
+    saveState();
     setIsDrawing(true);
     const ctx = canvasRef.current.getContext('2d');
     const pos = getPos(e);
@@ -474,6 +576,29 @@ const SketchPad = ({ onSave, initialImage }) => {
     }
   };
 
+  const undo = () => {
+    if (history.length > 0) {
+      const prevState = history[history.length - 1];
+      setHistory(prev => prev.slice(0, -1));
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      if (prevState) {
+        const img = new Image();
+        img.src = prevState;
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          onSave(canvas.toDataURL());
+        };
+      } else {
+        onSave(null);
+      }
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -489,19 +614,23 @@ const SketchPad = ({ onSave, initialImage }) => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     setBackgroundImage(null);
+    setHistory([]);
     onSave(null);
   };
 
   return (
     <div className="border border-slate-300 rounded-md overflow-hidden bg-white shadow-sm">
-      <div className="bg-slate-100 p-2 flex gap-2 items-center justify-between border-b border-slate-200">
+      <div className="bg-slate-100 p-2 flex gap-2 items-center justify-between border-b border-slate-200 flex-wrap">
         <div className="flex gap-2">
           <label className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 flex items-center gap-1">
             <ImageIcon className="h-3 w-3" />
             LOAD MAP
             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
           </label>
-          <button onClick={clearCanvas} className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 hover:text-red-600 flex items-center gap-1">
+          <button onClick={undo} type="button" className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 hover:text-blue-600 flex items-center gap-1">
+            <Undo2 className="h-3 w-3" /> UNDO
+          </button>
+          <button onClick={clearCanvas} type="button" className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 hover:text-red-600 flex items-center gap-1">
             <Eraser className="h-3 w-3" /> CLEAR
           </button>
         </div>
@@ -526,20 +655,27 @@ const SketchPad = ({ onSave, initialImage }) => {
   );
 };
 
-const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => {
+const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists, initialData }) => {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState(initialData?.coords || { lat: '', lng: '' });
   const scrollRef = useRef(null); 
   
   const [formData, setFormData] = useState(() => {
-    if (initialData) return initialData;
+    if (initialData) return { 
+      ...initialData,
+      workElements: initialData.workElements || (initialData.workElement ? [initialData.workElement] : []),
+      observers: initialData.observers || (initialData.observer ? [initialData.observer] : []),
+      additionalPilots: initialData.additionalPilots || [],
+      cameraOperators: initialData.cameraOperators || []
+    };
+    
     const nowStr = getCurrentLocalTime();
     return {
       start: nowStr,
       end: addMinutes(nowStr, 30),
-      location: '', description: '', pilot: '', rpas: '', observer: '', 
+      location: '', description: '', pilot: '', additionalPilots: [], cameraOperators: [], observers: [], rpas: '', 
       payload: '', opCategory: '', 
-      type: '', workElement: '', flightCount: 1, 
+      type: '', workElements: [], flightCount: 1, 
       airspace: '', airspaceType: '', aerodromes: [], proximity: '',
       distance: '', 
       notams: '', navCanRef: '', navCanFile: null,
@@ -581,7 +717,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
 
   const saveMission = () => {
     if (!formData.location || !formData.pilot) {
-      alert("Please enter at least a Location and Pilot name.");
+      alert("Please enter at least a Location and Pilot In Command.");
       return;
     }
 
@@ -591,13 +727,13 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       const [riskName, riskData] = riskEntries[i];
       if (riskData.checked && (riskData.level === 'Medium' || riskData.level === 'High')) {
         if (!riskData.mitigation || riskData.mitigation.trim() === '') {
-          alert(`Mitigation strategy is mandatory for ${riskData.level} risk item: ${riskName}`);
+          alert(`A Mitigation strategy is mandatory for ${riskData.level} risk item: ${riskName}`);
           return;
         }
       }
     }
 
-    // Pre-flight Validation
+    // Pre-flight check
     if (!formData.preflightCompleted) {
       alert("You must complete and check off the pre-flight checklist before saving the mission.");
       const preflightEl = document.getElementById('preflight-section');
@@ -607,36 +743,69 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
       return;
     }
 
-    const keysToCheck = ['pilots', 'rpas', 'observers', 'payload', 'opCategories', 'types', 'workElements', 'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits'];
+    // Mass List Extraction and Saving
+    const newLists = JSON.parse(JSON.stringify(lists));
+    let listsChanged = false;
+
+    const checkAndAdd = (listKey, val) => {
+      if (!val || typeof val !== 'string' || val.trim() === '') return;
+      const trimmed = val.trim();
+      if (!newLists[listKey]) newLists[listKey] = [];
+      if (!newLists[listKey].includes(trimmed)) {
+          newLists[listKey].push(trimmed);
+          listsChanged = true;
+      }
+    };
+
+    const keysToCheck = [
+      'pilots', 'additionalPilots', 'cameraOperators', 'observers', 'rpas', 'payload', 'opCategories', 'types', 'workElements', 
+      'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits',
+      'approachAlts', 'emergencySites', 'descriptions', 'preflightIssuesList'
+    ];
+    
     const fieldMap = { 
-      'pilots': 'pilot', 'rpas': 'rpas', 'observers': 'observer', 
-      'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
-      'workElements': 'workElement',
+      'pilots': 'pilot', 'additionalPilots': 'additionalPilots', 'cameraOperators': 'cameraOperators', 'observers': 'observers', 
+      'rpas': 'rpas', 'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
+      'workElements': 'workElements',
       'locations': 'location', 'airspaces': 'airspace', 'aerodromes': 'aerodromes', 
-      'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit'
+      'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit',
+      'approachAlts': 'approachAlt', 'emergencySites': 'emergencySite',
+      'descriptions': 'description', 'preflightIssuesList': 'preflightIssues'
     };
 
     keysToCheck.forEach(listKey => {
       const formField = fieldMap[listKey];
       const val = formData[formField];
       if (Array.isArray(val)) {
-         val.forEach(item => { if (item && lists[listKey] && !lists[listKey].includes(item)) onUpdateList(listKey, item, 'add'); });
+          val.forEach(item => checkAndAdd(listKey, item));
       } else {
-         if (val && lists[listKey] && !lists[listKey].includes(val)) onUpdateList(listKey, val, 'add');
+          checkAndAdd(listKey, val);
       }
     });
+
+    Object.values(formData.risks || {}).forEach(risk => {
+      if (risk.checked) {
+          checkAndAdd('riskDescriptions', risk.desc);
+          checkAndAdd('riskMitigations', risk.mitigation);
+      }
+    });
+
+    if (listsChanged) {
+      onUpdateBulkLists(newLists);
+    }
 
     const mission = { ...formData, coords, id: initialData?.id || generateId(), created: initialData?.created || new Date().toISOString() };
     onSave(mission);
   };
 
-  const getListProps = (formKey, listKey, multiple = false) => ({
+  const getListProps = (formKey, listKey, multiple = false, customClass = "mb-4") => ({
     value: formData[formKey],
     options: lists[listKey] || [],
     onChange: (val) => update(formKey, val),
     multiple,
+    className: customClass,
     onDelete: (val) => {
-       if (confirm(`Remove "${val}" from the saved list?`)) {
+       if (confirm(`Remove "${val}" from your saved options list?`)) {
          onUpdateList(listKey, val, 'del');
          if (!multiple && formData[formKey] === val) update(formKey, '');
        }
@@ -718,9 +887,12 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                 <Users className="h-5 w-5 text-emerald-700" />
                 OPERATIONAL RESOURCES
               </h3>
-              <DynamicSelect label="Pilot in Command" icon={Users} {...getListProps('pilot', 'pilots')} />
+              <DynamicSelect label="Pilot In Command" icon={Users} {...getListProps('pilot', 'pilots')} />
+              <DynamicSelect label="Additional Pilots" icon={Users} {...getListProps('additionalPilots', 'additionalPilots', true)} />
+              <DynamicSelect label="Camera Operators" icon={Eye} {...getListProps('cameraOperators', 'cameraOperators', true)} />
+              <DynamicSelect label="Observers" icon={Eye} {...getListProps('observers', 'observers', true)} />
+              
               <DynamicSelect label="RPAS Model and Reg No." icon={Crosshair} {...getListProps('rpas', 'rpas')} />
-              <DynamicSelect label="Observer" icon={Eye} {...getListProps('observer', 'observers')} />
               <DynamicSelect label="Payload" icon={Box} {...getListProps('payload', 'payload')} />
               <DynamicSelect label="Operation Category" icon={Activity} {...getListProps('opCategory', 'opCategories')} />
               
@@ -729,8 +901,8 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
               <DynamicSelect label="Nearby Aerodromes / Frequency" icon={MapPin} {...getListProps('aerodromes', 'aerodromes', true)} />
               
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Proximity to Nearest Aerodrome</label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.proximity} onChange={(e) => update('proximity', e.target.value)} placeholder="e.g. 5NM West" />
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Proximity to Nearest Aerodrome (km)</label>
+                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.proximity} onChange={(e) => update('proximity', e.target.value)} placeholder="e.g. 8km West" />
               </div>
                <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Applicable NOTAMS</label>
@@ -774,7 +946,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                     <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Visibility (km)</label>
                     <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.visibility} onChange={(e) => update('visibility', e.target.value)}>
                        <option value="">Select...</option>
-                       {[1, 3, 5, 10, 15, 20, 25, 30, '30+'].map(v => <option key={v} value={v}>{v}</option>)}
+                       {['Excellent (above 10 km)', 'Good (5-10 km)', 'Fair (2-5 km)', 'Poor (1-2 km)'].map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </div>
                </div>
@@ -794,14 +966,8 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                  <FileText className="h-5 w-5 text-emerald-700" />
                  AFTER MISSION REPORT
                </h3>
-               <div>
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Outcomes/Summary</label>
-                 <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.outcomesSummary || ''} onChange={(e) => update('outcomesSummary', e.target.value)} placeholder="Mission outcomes..." />
-               </div>
-               <div>
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Incidents/Maintenance</label>
-                 <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.incidentsMaintenance || ''} onChange={(e) => update('incidentsMaintenance', e.target.value)} placeholder="Any incidents or maintenance required..." />
-               </div>
+               <DynamicTextArea label="Outcomes/Summary" value={formData.outcomesSummary || ''} options={lists.descriptions} onChange={(val) => update('outcomesSummary', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} />
+               <DynamicTextArea label="Incidents/Maintenance" value={formData.incidentsMaintenance || ''} options={lists.preflightIssuesList} onChange={(val) => update('incidentsMaintenance', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} />
             </div>
           </div>
         )}
@@ -811,7 +977,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Crosshair className="h-5 w-5 text-emerald-700" /> MISSION</h3>
                <DynamicSelect label="Mission Type" icon={FileText} {...getListProps('type', 'types')} />
-               <DynamicSelect label="Work Element" icon={FileText} {...getListProps('workElement', 'workElements')} />
+               <DynamicSelect label="Work Elements" icon={FileText} {...getListProps('workElements', 'workElements', true)} />
                <div className="mb-4">
                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> No. of Flights</label>
                  <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
@@ -824,13 +990,20 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
 
                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
                  <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">Approach and Departure</h4>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Altitude (m)</label><select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachAlt} onChange={(e) => update('approachAlt', e.target.value)}><option value="">Select...</option>{Array.from({length: 120}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
-                    <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label><select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">Select...</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                 <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="w-full sm:w-28 shrink-0">
+                      <DynamicSelect label="Alt (m)" icon={null} customClass="" {...getListProps('approachAlt', 'approachAlts')} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label>
+                      <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">Select...</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}</select>
+                    </div>
                  </div>
                </div>
-               <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Emergency Landing Site</label><input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.emergencySite} onChange={(e) => update('emergencySite', e.target.value)} placeholder="Describe location..." /></div>
-               <div><label className="font-bold text-slate-800 mb-2 block text-sm uppercase">Description / Objectives</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-24" value={formData.description} onChange={e => update('description', e.target.value)} /></div>
+               
+               <DynamicSelect label="Emergency Landing Site" icon={null} {...getListProps('emergencySite', 'emergencySites')} />
+               <DynamicTextArea label="Description / Objectives" value={formData.description || ''} options={lists.descriptions} onChange={(val) => update('description', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} />
+               
                <div className="space-y-3">
                  <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase"><PenTool className="h-4 w-4 text-emerald-700" /> MISSION AREA SKETCH</h3>
                  <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} />
@@ -856,8 +1029,8 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                   {riskData.checked && (
                     <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
                       <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Risk Level</label><select className="w-full p-2 border border-slate-300 rounded bg-white text-sm" value={riskData.level || ''} onChange={(e) => handleRiskChange(item, 'level', e.target.value)}><option value="">Select...</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select></div>
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label><textarea className="w-full p-2 border border-slate-300 rounded bg-white text-sm" rows={2} value={riskData.desc || ''} onChange={(e) => handleRiskChange(item, 'desc', e.target.value)} /></div>
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mitigation</label><textarea className="w-full p-2 border border-slate-300 rounded bg-white text-sm" rows={2} value={riskData.mitigation || ''} onChange={(e) => handleRiskChange(item, 'mitigation', e.target.value)} /></div>
+                      <DynamicTextArea label="Description" value={riskData.desc || ''} options={lists.riskDescriptions} onChange={(val) => handleRiskChange(item, 'desc', val)} onDelete={(val) => onUpdateList('riskDescriptions', val, 'del')} />
+                      <DynamicTextArea label="Mitigation" value={riskData.mitigation || ''} options={lists.riskMitigations} onChange={(val) => handleRiskChange(item, 'mitigation', val)} onDelete={(val) => onUpdateList('riskMitigations', val, 'del')} />
                     </div>
                   )}
                 </div>
@@ -876,10 +1049,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, initialData }) => 
                   <span className="text-sm font-medium text-slate-700">I have completed the pre-flight checklist</span>
                 </label>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">ISSUES / CONCERNS</label>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.preflightIssues || ''} onChange={(e) => update('preflightIssues', e.target.value)} placeholder="Note any issues or concerns here..." />
-              </div>
+              <DynamicTextArea label="Issues / Concerns" value={formData.preflightIssues || ''} options={lists.preflightIssuesList} onChange={(val) => update('preflightIssues', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} />
             </div>
           </div>
         )}
@@ -934,11 +1104,13 @@ const PrintMissionView = ({ mission, onBack }) => {
           </div>
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Operational Resources</h3>
-            <p className="text-sm mb-1"><strong>Pilot:</strong> {mission.pilot}</p>
-            <p className="text-sm mb-1"><strong>RPAS:</strong> {mission.rpas}</p>
+            <p className="text-sm mb-1"><strong>Pilot In Command:</strong> {mission.pilot}</p>
+            <p className="text-sm mb-1"><strong>Additional Pilots:</strong> {Array.isArray(mission.additionalPilots) ? mission.additionalPilots.join(', ') : 'None'}</p>
+            <p className="text-sm mb-1"><strong>Camera Operators:</strong> {Array.isArray(mission.cameraOperators) ? mission.cameraOperators.join(', ') : 'None'}</p>
+            <p className="text-sm mb-1"><strong>Observers:</strong> {Array.isArray(mission.observers) ? mission.observers.join(', ') : (mission.observer || 'None')}</p>
+            <p className="text-sm mb-1 mt-2"><strong>RPAS:</strong> {mission.rpas}</p>
             <p className="text-sm mb-1"><strong>Op Category:</strong> {mission.opCategory || 'N/A'}</p>
             <p className="text-sm mb-1"><strong>Payload:</strong> {mission.payload || 'N/A'}</p>
-            <p className="text-sm mb-1"><strong>Observer:</strong> {mission.observer || 'N/A'}</p>
           </div>
         </div>
 
@@ -946,7 +1118,7 @@ const PrintMissionView = ({ mission, onBack }) => {
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Details</h3>
             <p className="text-sm mb-1"><strong>Type:</strong> {mission.type}</p>
-            <p className="text-sm mb-1"><strong>Work Element:</strong> {mission.workElement || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Work Elements:</strong> {Array.isArray(mission.workElements) ? mission.workElements.join(', ') : (mission.workElement || 'N/A')}</p>
             <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
             <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
             <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
@@ -959,7 +1131,7 @@ const PrintMissionView = ({ mission, onBack }) => {
              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Weather Conditions</h3>
              <p className="text-sm mb-1"><strong>Temp:</strong> {mission.temperature ? `${mission.temperature}°C` : 'N/A'}</p>
              <p className="text-sm mb-1"><strong>Wind:</strong> {mission.windSpeed ? `${mission.windSpeed} km/h ${mission.windDir}` : 'N/A'}</p>
-             <p className="text-sm mb-1"><strong>Visibility:</strong> {mission.visibility ? `${mission.visibility} km` : 'N/A'}</p>
+             <p className="text-sm mb-1"><strong>Visibility:</strong> {mission.visibility || 'N/A'}</p>
              <p className="text-sm mb-1 mt-2"><strong>Notes:</strong> {mission.weatherText || 'None'}</p>
              
              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2 mt-4">Post-Flight</h3>
@@ -1022,28 +1194,45 @@ const PrintMissionView = ({ mission, onBack }) => {
   );
 };
 
-const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onBackup, onRestore, onPrint }) => {
+const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onBackup, onRestore, onPrint, scrollRef }) => {
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    if (scrollRef && scrollRef.current !== undefined) {
+      window.scrollTo(0, scrollRef.current);
+    }
+    const handleScroll = () => {
+      if (scrollRef) scrollRef.current = window.scrollY;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrollRef]);
   
-  // SORTED: Newest First
-  const filteredMissions = missions.filter(m => 
-    (m.location && m.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (m.pilot && m.pilot.toLowerCase().includes(searchTerm.toLowerCase()))
-  ).sort((a,b) => new Date(b.start) - new Date(a.start));
+  // JSON global search filter, newest first sort
+  const filteredMissions = missions.filter(m => {
+    if (!searchTerm) return true;
+    return JSON.stringify(m).toLowerCase().includes(searchTerm.toLowerCase());
+  }).sort((a,b) => new Date(b.start) - new Date(a.start));
 
   return (
     <div className="p-4 max-w-4xl mx-auto space-y-6 pb-20">
-      <header className="flex justify-between items-center bg-emerald-900 text-white p-6 rounded-md shadow-lg">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-3 tracking-wider"><Crosshair className="h-6 w-6 text-emerald-400" /> DFO RPAS FLIGHT LOG</h1>
-          <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">Fishery Officer Field Unit</p>
-          <div className="text-[10px] text-emerald-300 mt-2 space-y-0.5">
-            <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
-            <p>Regional RPAS program coordinator: Philip Bouma</p>
-            <p>Chief of Enforcement Operations: Ulysse Brideau</p>
+      
+      <div className="space-y-4">
+        <header className="bg-emerald-900 text-white p-6 rounded-md shadow-lg">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3 tracking-wider">
+              <Crosshair className="h-6 w-6 text-emerald-400 shrink-0" /> DFO RPAS FLIGHT LOG
+            </h1>
+            <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest sm:ml-9">Fishery Officer Field Unit</p>
           </div>
+        </header>
+        
+        <div className="bg-slate-300 p-4 rounded-md shadow-sm text-[10px] text-slate-700 uppercase font-bold tracking-wider space-y-1">
+          <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
+          <p>Regional RPAS program coordinator: Philip Bouma</p>
+          <p>Chief of Enforcement Operations: Ulysse Brideau</p>
         </div>
-      </header>
+      </div>
 
       <div className="flex gap-3">
         <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
@@ -1059,12 +1248,16 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
         </label>
       </div>
 
+      <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
+        Note: Backup your data often
+      </div>
+
       {/* SEARCH BAR */}
       <div className="relative">
          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
          <input 
            type="text" 
-           placeholder="Search site or pilot..." 
+           placeholder="Search all mission data..." 
            className="w-full pl-10 p-3 rounded-md border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
            value={searchTerm}
            onChange={(e) => setSearchTerm(e.target.value)}
@@ -1080,7 +1273,9 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
         <div className="text-center py-16 bg-white rounded-md border-2 border-dashed border-slate-200"><Crosshair className="h-12 w-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500 font-medium">No mission data found.</p></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
-          {filteredMissions.map(mission => {
+          {filteredMissions.map((mission, index) => {
+            const visualRefNum = filteredMissions.length - index;
+            
             return (
               <div key={mission.id} className="bg-white rounded-md shadow-sm border border-slate-200 overflow-hidden flex flex-col sm:flex-row">
                 <div className="bg-slate-100 w-full sm:w-32 h-32 sm:h-auto flex-shrink-0 flex items-center justify-center border-b sm:border-b-0 sm:border-r border-slate-200">
@@ -1089,7 +1284,10 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-slate-800 text-lg leading-tight">{mission.location}</h3>
+                      <h3 className="font-bold text-slate-800 text-lg leading-tight">
+                        <span className="text-slate-400 mr-2">#{visualRefNum}</span>
+                        {mission.location}
+                      </h3>
                       <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded">{mission.opCategory || 'Basic'}</span>
                     </div>
                     <div className="text-sm text-slate-600 space-y-1 mb-4">
@@ -1119,6 +1317,7 @@ export default function App() {
   const [lists, setLists] = useState(DEFAULT_LISTS);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
+  const dashboardScrollRef = useRef(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -1126,7 +1325,6 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
-        // FIX: Force merge opCategories from DEFAULT_LISTS if they are missing or incomplete in the saved DB
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
@@ -1137,7 +1335,10 @@ export default function App() {
              referenceGpsUnits: savedLists.value.referenceGpsUnits || DEFAULT_LISTS.referenceGpsUnits,
              workElements: (savedLists.value.workElements && savedLists.value.workElements.length > 0)
                 ? savedLists.value.workElements
-                : DEFAULT_LISTS.workElements
+                : DEFAULT_LISTS.workElements,
+             additionalPilots: savedLists.value.additionalPilots || DEFAULT_LISTS.additionalPilots,
+             cameraOperators: savedLists.value.cameraOperators || DEFAULT_LISTS.cameraOperators,
+             observers: savedLists.value.observers || DEFAULT_LISTS.observers
            }));
         }
       } catch (error) { console.error(error); }
@@ -1173,6 +1374,12 @@ export default function App() {
     else if (action === 'del') newLists[key] = current.filter(x => x !== value);
     setLists(newLists);
     await db.settings.put({ key: 'customLists', value: newLists });
+  };
+  
+  const handleUpdateBulkLists = async (newListsObj) => {
+    const updatedLists = { ...lists, ...newListsObj };
+    setLists(updatedLists);
+    await db.settings.put({ key: 'customLists', value: updatedLists });
   };
 
   const handleSaveMission = async (mission) => {
@@ -1236,6 +1443,7 @@ export default function App() {
           onBackup={() => backupData(missions, lists)}
           onRestore={handleRestore}
           onPrint={(mission) => { setEditingMission(mission); setView('print'); }}
+          scrollRef={dashboardScrollRef}
         />
       )}
       {view === 'form' && (
@@ -1245,12 +1453,13 @@ export default function App() {
           onCancel={() => setView('dashboard')}
           lists={lists}
           onUpdateList={handleUpdateList}
+          onUpdateBulkLists={handleUpdateBulkLists}
         />
       )}
       {view === 'print' && (
         <PrintMissionView 
           mission={editingMission} 
-          onBack={() => { setEditingMission(null); setView('dashboard'); }} 
+          onBack={() => { setView('dashboard'); }} 
         />
       )}
       
