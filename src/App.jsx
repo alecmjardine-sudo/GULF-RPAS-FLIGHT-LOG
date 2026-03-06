@@ -424,7 +424,7 @@ const RISK_ITEMS = [
  * --- COMPONENTS ---
  */
 
-// -- NEW SAVED LISTS MANAGER VIEW --
+// -- SAVED LISTS MANAGER VIEW --
 const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
   const [selectedList, setSelectedList] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -444,7 +444,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
     workElements: "Work Elements",
     airspaces: "Airspace Classes",
     airspaceTypes: "Airspace Types",
-    aerodromes: "Aerodromes (100km Calc)",
+    aerodromes: "Aerodromes",
     referenceGpsUnits: "Reference GPS Units",
     approachAlts: "Approach Altitudes",
     emergencySites: "Emergency Landing Sites",
@@ -892,20 +892,16 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
       return newData;
     });
   };
-  
-  const handleGPS = () => getCoordinates((c) => {
-    setCoords(c);
-    
-    // Auto-calculate aerodromes
+
+  const calculateAerodromes = (lat, lng) => {
     let nearbyText = "";
     if (lists.aerodromes && Array.isArray(lists.aerodromes)) {
       const nearby = [];
       lists.aerodromes.forEach(aeroStr => {
-         // Expects format: "Name (CODE) - Freq - [lat, lng]"
          const match = aeroStr.match(/^(.*?)\s*\((.*?)\)\s*-\s*(.*?)\s*-\s*\[(.*?),\s*(.*?)\]$/);
          if (match) {
             const [_, name, code, freq, latStr, lngStr] = match;
-            const dist = getDistanceFromLatLonInKm(parseFloat(c.lat), parseFloat(c.lng), parseFloat(latStr), parseFloat(lngStr));
+            const dist = getDistanceFromLatLonInKm(parseFloat(lat), parseFloat(lng), parseFloat(latStr), parseFloat(lngStr));
             if (dist <= 100) {
                nearby.push(`${name} (${code}) - ${freq} MHz - GPS: ${latStr}, ${lngStr} (${dist.toFixed(1)}km)`);
             }
@@ -922,8 +918,28 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
          nearbyText = "No aerodromes within 100km detected.";
       }
     }
-    update('aerodromesWithin100km', nearbyText);
-  });
+    return nearbyText;
+  };
+  
+  const handleGPS = () => {
+    if (coords.lat && coords.lng) {
+      if (!confirm("Are you sure you want to re-acquire GPS coordinates? This will overwrite the current coordinates.")) {
+        return;
+      }
+    }
+    getCoordinates((c) => {
+      setCoords(c);
+      update('aerodromesWithin100km', calculateAerodromes(c.lat, c.lng));
+    });
+  };
+
+  const handlePopulateAerodromes = () => {
+    if (!coords.lat || !coords.lng) {
+      alert("Please acquire or manually enter GPS coordinates first.");
+      return;
+    }
+    update('aerodromesWithin100km', calculateAerodromes(coords.lat, coords.lng));
+  };
   
   const handleCoordChange = (field, value) => setCoords(prev => ({ ...prev, [field]: value }));
   
@@ -1123,8 +1139,11 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
               <DynamicSelect label="Airspace Type" icon={Cloud} {...getListProps('airspaceType', 'airspaceTypes')} />
               
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-700" /> Aerodromes within 100km</label>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md h-32 text-xs font-mono bg-slate-50" value={formData.aerodromesWithin100km || ''} onChange={(e) => update('aerodromesWithin100km', e.target.value)} placeholder="Will auto-populate when GPS is acquired..." />
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-600 uppercase flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-700" /> Aerodromes within 100km</label>
+                  <button onClick={handlePopulateAerodromes} type="button" className="text-[10px] bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">POPULATE</button>
+                </div>
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-32 text-xs font-mono bg-slate-50" value={formData.aerodromesWithin100km || ''} onChange={(e) => update('aerodromesWithin100km', e.target.value)} placeholder="Will auto-populate when GPS is acquired or populate is pressed..." />
               </div>
                <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Applicable NOTAMS</label>
@@ -1344,8 +1363,8 @@ const PrintMissionView = ({ mission, onBack }) => {
             <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
             <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
             <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
-            <p className="text-sm mb-1"><strong>Aerodromes within 100km:</strong> {mission.aerodromesWithin100km ? mission.aerodromesWithin100km : (Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None'))}</p>
-            <p className="text-sm mb-1"><strong>NOTAMS:</strong> {mission.notams || 'None'}</p>
+            <p className="text-sm mb-1"><strong>Aerodromes within 100km:</strong><br/><span style={{whiteSpace: 'pre-wrap'}}>{mission.aerodromesWithin100km ? mission.aerodromesWithin100km : (Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None'))}</span></p>
+            <p className="text-sm mb-1 mt-2"><strong>NOTAMS:</strong> {mission.notams || 'None'}</p>
             <p className="text-sm mb-1"><strong>NavCan Ref:</strong> {mission.navCanRef || 'N/A'}</p>
             <p className="text-sm mb-1 mt-2"><strong>Approach Alt:</strong> {mission.approachAlt || 'N/A'}, <strong>Route:</strong> {mission.approachRoute || 'N/A'}</p>
             <p className="text-sm mb-1"><strong>Emergency Site:</strong> {mission.emergencySite || 'N/A'}</p>
@@ -1463,19 +1482,21 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
+      <div className="flex flex-col gap-3">
+        <button onClick={onBackup} className="w-full bg-white hover:bg-slate-50 text-slate-700 py-3 rounded-md font-bold flex flex-row items-center justify-center text-xs gap-2 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
+          <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> Full Report</button>
+          <button onClick={onManageLists} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><List className="h-4 w-4 text-indigo-600" /> Saved Lists</button>
+          <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4 text-amber-600" /> Restore Data
+            <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+          </label>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
-        <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> Full Report</button>
-        <button onClick={onManageLists} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><List className="h-4 w-4 text-indigo-600" /> Saved Lists</button>
-        <button onClick={onBackup} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
-        <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
-          <Upload className="h-4 w-4 text-amber-600" /> Restore Data
-          <input type="file" accept=".json" onChange={onRestore} className="hidden" />
-        </label>
+      <div className="flex gap-3 mt-4">
+        <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
       </div>
 
       <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
@@ -1555,6 +1576,7 @@ export default function App() {
         const savedMissions = await db.missions.toArray();
         setMissions(savedMissions);
         const savedLists = await db.settings.get('customLists');
+        
         if (savedLists) {
            setLists(prev => ({ 
              ...DEFAULT_LISTS, 
@@ -1568,7 +1590,8 @@ export default function App() {
                 : DEFAULT_LISTS.workElements,
              additionalPilots: savedLists.value.additionalPilots || DEFAULT_LISTS.additionalPilots,
              cameraOperators: savedLists.value.cameraOperators || DEFAULT_LISTS.cameraOperators,
-             observers: savedLists.value.observers || DEFAULT_LISTS.observers
+             observers: savedLists.value.observers || DEFAULT_LISTS.observers,
+             aerodromes: savedLists.value.aerodromes || DEFAULT_LISTS.aerodromes
            }));
         }
       } catch (error) { console.error(error); }
