@@ -4,7 +4,7 @@ import {
   Crosshair, MapPin, FileText, AlertTriangle, Download, Trash2, Plus, Save, 
   ArrowLeft, Navigation, Users, Eye, Box, PenTool, Image as ImageIcon, 
   Eraser, Edit2, Calendar, Database, Upload, Cloud, Radio, FileCheck, Wind, 
-  Thermometer, Eye as VisibilityIcon, Activity, Search, Printer, Globe, Undo2
+  Thermometer, Eye as VisibilityIcon, Activity, Search, Printer, Globe, Undo2, List
 } from 'lucide-react';
 
 /**
@@ -73,6 +73,19 @@ const getCoordinates = (callback) => {
   });
 };
 
+// Calculate distance between two coordinates in km
+const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; 
+};
+
 // --- CSV EXPORT FUNCTION (Images Removed) ---
 const exportToCSV = (missions) => {
   if (!missions || missions.length === 0) {
@@ -109,7 +122,7 @@ const exportToCSV = (missions) => {
       "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
       "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
       "Pilot In Command", "Additional Pilots", "Camera Operators", "Observers", "RPAS Model/Reg", "Payload", "Op Category", "Mission Type", "Work Elements",
-      "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes", "Proximity", "NOTAMS", "NavCan Ref",
+      "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes within 100km", "NOTAMS", "NavCan Ref",
       "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
       "Approach Alt", "Approach Route", "Emergency Site",
       "Preflight Completed", "Preflight Issues",
@@ -120,11 +133,14 @@ const exportToCSV = (missions) => {
     const sortedMissions = [...missions].sort((a, b) => new Date(b.start) - new Date(a.start));
 
     const rows = sortedMissions.map(m => {
-      const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || '');
+      // Fallback to legacy fields if the new field is missing (protects old data)
+      const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km : (Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || ''));
       const workElemStr = Array.isArray(m.workElements) ? m.workElements.join('; ') : (m.workElements || m.workElement || '');
       const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join('; ') : '';
       const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join('; ') : '';
       const observersStr = Array.isArray(m.observers) ? m.observers.join('; ') : (m.observer || '');
+      const rpasStr = Array.isArray(m.rpas) ? m.rpas.join('; ') : (m.rpas || '');
+      const payloadStr = Array.isArray(m.payload) ? m.payload.join('; ') : (m.payload || '');
 
       return [
         m.id,
@@ -140,8 +156,8 @@ const exportToCSV = (missions) => {
         addPilotsStr,
         camOpsStr,
         observersStr,
-        m.rpas,
-        m.payload,
+        rpasStr,
+        payloadStr,
         m.opCategory,
         m.type,
         workElemStr,
@@ -149,8 +165,7 @@ const exportToCSV = (missions) => {
         m.distance,
         m.airspace,
         m.airspaceType,
-        aerodromeStr,
-        m.proximity,
+        aeroOut,
         m.notams,
         m.navCanRef,
         m.temperature,
@@ -229,12 +244,14 @@ const exportToHTML = (missions) => {
 
   sortedMissions.forEach(m => {
     const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'} - Mitigation: ${v.mitigation || 'None'})`).join('<br/>') : 'None';
-    const aerodromeStr = Array.isArray(m.aerodromes) ? m.aerodromes.join(', ') : (m.aerodromes || 'None');
+    const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km.replace(/\n/g, '<br/>') : (Array.isArray(m.aerodromes) ? m.aerodromes.join(', ') : (m.aerodromes || 'None'));
     const workElemStr = Array.isArray(m.workElements) ? m.workElements.join(', ') : (m.workElements || m.workElement || 'N/A');
     const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join(', ') : 'None';
     const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join(', ') : 'None';
     const observersStr = Array.isArray(m.observers) ? m.observers.join(', ') : (m.observer || 'None');
-
+    const rpasStr = Array.isArray(m.rpas) ? m.rpas.join(', ') : (m.rpas || 'N/A');
+    const payloadStr = Array.isArray(m.payload) ? m.payload.join(', ') : (m.payload || 'N/A');
+    
     html += `
       <div class="mission-card">
         <h2 class="mission-title">${m.location || 'Unknown Location'} - ${formatDateTime24h(m.start)}</h2>
@@ -248,12 +265,12 @@ const exportToHTML = (missions) => {
             <tr><th>Additional Pilots</th><td>${addPilotsStr}</td></tr>
             <tr><th>Camera Operators</th><td>${camOpsStr}</td></tr>
             <tr><th>Observers</th><td>${observersStr}</td></tr>
-            <tr><th>RPAS / Payload</th><td>${m.rpas || 'N/A'} / ${m.payload || 'N/A'}</td></tr>
+            <tr><th>RPAS / Payload</th><td>${rpasStr} / ${payloadStr}</td></tr>
             <tr><th>Op Category / Mission Type</th><td>${m.opCategory || 'N/A'} / ${m.type || 'N/A'}</td></tr>
             <tr><th>Work Elements</th><td>${workElemStr}</td></tr>
             <tr><th>Flights / Distance</th><td>${m.flightCount || 1} flight(s) / ${m.distance || 'N/A'} km</td></tr>
             <tr><th>Airspace</th><td>${m.airspace || 'N/A'} (${m.airspaceType || 'N/A'})</td></tr>
-            <tr><th>Aerodromes / Proximity</th><td>${aerodromeStr} / ${m.proximity || 'N/A'}</td></tr>
+            <tr><th>Aerodromes within 100km</th><td>${aeroOut}</td></tr>
             <tr><th>NOTAMS / NavCan Ref</th><td>${m.notams || 'None'} / ${m.navCanRef || 'N/A'}</td></tr>
             <tr><th>Approach / Emergency Site</th><td>Alt: ${m.approachAlt || 'N/A'}, Route: ${m.approachRoute || 'N/A'} / Site: ${m.emergencySite || 'None'}</td></tr>
             <tr><th>Weather Conditions</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'}</td></tr>
@@ -316,9 +333,72 @@ const DEFAULT_LISTS = {
   locations: [],
   airspaces: ['Class G', 'Class F', 'Class C', 'Class D', 'Class E'],
   aerodromes: [
-    'Fredericton (CYFC) - 119.5', 'Moncton (CYQM) - 120.8', 'Saint John (CYSJ) - 118.5', 'Bathurst (CYBF) - 122.3', 'Miramichi (CYCH) - 122.8',
-    'Charlottetown (CYYG) - 118.0', 'Summerside (CYSU) - 122.3',
-    'Halifax (CYHZ) - 118.7', 'Sydney (CYQY) - 118.7', 'Yarmouth (CYQY) - 122.3', 'Greenwood (CYZX) - 119.5', 'Trenton (CYTN) - 122.8'
+    'Fredericton Int\'l (CYFC) - 119.5 - [45.8688, -66.5372]',
+    'Moncton / Roméo LeBlanc Int\'l (CYQM) - 120.8 - [46.1122, -64.6786]',
+    'Saint John (CYSJ) - 118.5 - [45.3161, -65.8902]',
+    'Bathurst (CYBF) - 122.3 - [47.6297, -65.7388]',
+    'Miramichi (CYCH) - 122.8 - [46.9736, -65.4491]',
+    'Charlo (CYCL) - 122.8 - [47.9905, -66.3302]',
+    'Grand Manan (CYGK) - 122.8 - [44.7108, -66.7944]',
+    'St. Stephen (CYSQ) - 122.8 - [45.2058, -67.2497]',
+    'Sussex (CCY3) - 122.8 - [45.6936, -65.5455]',
+    'Woodstock (CCQ3) - 122.8 - [46.1488, -67.5458]',
+    'Edmundston (CCY5) - 122.8 - [47.4575, -68.3241]',
+    'Florenceville (CCZ3) - 122.8 - [46.4252, -67.6258]',
+    'Bouctouche (CDA5) - 122.8 - [46.4380, -64.6975]',
+    'Havelock (CCS5) - 122.8 - [45.9861, -65.3166]',
+    'Brockway (CCX3) - 122.8 - [45.5700, -67.0983]',
+    'Weyman (CCG3) - 122.8 - [46.0469, -66.8530]',
+    'Saint John Reg Hospital Heliport (CSN6) - 122.8 - [45.3061, -66.0847]',
+    'Moncton Hospital Heliport (CHC9) - 122.8 - [46.1044, -64.7950]',
+    'Shediac Bridge (CSB5) - 122.8 - [46.2411, -64.5555]',
+    'Halifax Stanfield Int\'l (CYHZ) - 118.7 - [44.8808, -63.5086]',
+    'Sydney / J.A. Douglas McCurdy (CYQY) - 118.7 - [46.1613, -60.0477]',
+    'Yarmouth (CYQI) - 122.3 - [43.8272, -66.0019]',
+    'Greenwood (CYZX) - 119.5 - [44.9844, -64.9169]',
+    'Shearwater Heliport (CYAW) - 118.1 - [44.6397, -63.4994]',
+    'Debert (CCQ3) - 122.8 - [45.4180, -63.4608]',
+    'Digby (CYID) - 122.8 - [44.5383, -65.7888]',
+    'Port Hawkesbury (CYPD) - 122.8 - [45.6200, -61.3663]',
+    'Trenton (CYTN) - 122.8 - [45.6111, -62.6225]',
+    'Waterville / Kings County (CCW3) - 122.8 - [45.0538, -64.8016]',
+    'Fox Harbour (CFH4) - 122.8 - [45.8683, -63.4625]',
+    'Margaree (CCZ4) - 122.8 - [46.3392, -60.9805]',
+    'Thorburn (CCZ5) - 122.8 - [45.5666, -62.5983]',
+    'South Noel Road (CSN5) - 122.8 - [45.2411, -63.7547]',
+    'Finlay (CFI4) - 122.8 - [45.8450, -63.6394]',
+    'Halifax (QE II Hosp) Heliport (CHQE) - 122.8 - [44.6444, -63.5855]',
+    'Halifax (IWK) Heliport (CHI2) - 122.8 - [44.6397, -63.5841]',
+    'Kentville (Camp Aldershot) Heliport (CKV4) - 122.8 - [45.0938, -64.5097]',
+    'Charlottetown (CYYG) - 118.0 - [46.2897, -63.1211]',
+    'Summerside (CYSU) - 122.3 - [46.4427, -63.8344]',
+    'Cable Head (CCA3) - 122.8 - [46.4527, -62.5694]',
+    'Charlottetown (Queen Elizabeth Hosp) Heliport (CDV3) - 122.8 - [46.2461, -63.1097]',
+    'Summerside (Prince County Hosp) Heliport (CCH6) - 122.8 - [46.4116, -63.7844]',
+    'St. John\'s Int\'l (CYYT) - 120.6 - [47.6186, -52.7519]',
+    'Gander Int\'l (CYQX) - 118.1 - [48.9369, -54.5680]',
+    'Deer Lake (CYDF) - 122.3 - [49.2108, -57.3913]',
+    'Stephenville (CYJT) - 122.8 - [48.5441, -58.5499]',
+    'Wabush (CYWK) - 122.1 - [52.9219, -66.8644]',
+    'Goose Bay (CYYR) - 119.4 - [53.3191, -60.4258]',
+    'St. Anthony (CYAY) - 122.8 - [51.3919, -56.0830]',
+    'Churchill Falls (CZUM) - 122.8 - [53.5622, -64.0152]',
+    'Nain (CYDP) - 122.8 - [56.5466, -61.6811]',
+    'Hopedale (CYHO) - 122.8 - [55.4483, -60.2286]',
+    'Makkovik (CYFT) - 122.8 - [55.0763, -59.1866]',
+    'Cartwright (CYCA) - 122.8 - [53.6827, -57.0422]',
+    'Mary\'s Harbour (CYMH) - 122.8 - [52.3025, -55.8483]',
+    'Natuashish (CNH2) - 122.8 - [55.9133, -60.8294]',
+    'Postville (CCD4) - 122.8 - [54.9103, -59.7850]',
+    'Port Hope Simpson (CCX4) - 122.8 - [52.5275, -56.2881]',
+    'Rigolet (CCZ2) - 122.8 - [54.3275, -58.4578]',
+    'Black Tickle (CCE4) - 122.8 - [53.4681, -53.5822]',
+    'Charlottetown (NL) (CCH4) - 122.8 - [52.7661, -56.1158]',
+    'Fogo (CDY3) - 122.8 - [49.6952, -54.2394]',
+    'Winterland (CCC2) - 122.8 - [47.1352, -55.3283]',
+    'Springdale (CCD2) - 122.8 - [49.4838, -56.1802]',
+    'St. John\'s (Health Sciences Centre) Heliport (CCK2) - 122.8 - [47.5738, -52.7441]',
+    'Clarenville (CCV3) - 122.8 - [48.1750, -53.9261]'
   ],
   airspaceTypes: ['Uncontrolled', 'Controlled', 'Restricted'],
   referenceGpsUnits: [],
@@ -343,6 +423,116 @@ const RISK_ITEMS = [
 /**
  * --- COMPONENTS ---
  */
+
+// -- NEW SAVED LISTS MANAGER VIEW --
+const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
+  const [selectedList, setSelectedList] = useState(null);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [newValue, setNewValue] = useState('');
+
+  const LIST_NAMES = {
+    locations: "Locations / Site Names",
+    pilots: "Pilots In Command",
+    additionalPilots: "Additional Pilots",
+    cameraOperators: "Camera Operators",
+    observers: "Observers",
+    rpas: "RPAS Models & Reg",
+    payload: "Payloads",
+    opCategories: "Operation Categories",
+    types: "Mission Types",
+    workElements: "Work Elements",
+    airspaces: "Airspace Classes",
+    airspaceTypes: "Airspace Types",
+    aerodromes: "Aerodromes (100km Calc)",
+    referenceGpsUnits: "Reference GPS Units",
+    approachAlts: "Approach Altitudes",
+    emergencySites: "Emergency Landing Sites",
+    descriptions: "Descriptions / Objectives",
+    preflightIssuesList: "Pre-Flight Issues / Incidents",
+    riskDescriptions: "Risk Descriptions",
+    riskMitigations: "Risk Mitigations"
+  };
+
+  if (selectedList === null) {
+     return (
+       <div className="flex flex-col h-screen max-w-3xl mx-auto bg-slate-100">
+         <div className="bg-emerald-900 text-white p-4 sticky top-0 z-10 flex items-center shadow-md gap-3">
+           <button onClick={onBack} className="p-2 hover:bg-emerald-800 rounded-full transition-colors"><ArrowLeft className="h-6 w-6" /></button>
+           <h2 className="text-lg font-bold tracking-wide">SAVED LISTS MANAGER</h2>
+         </div>
+         <div className="flex-1 overflow-y-auto p-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-3">
+           {Object.entries(LIST_NAMES).map(([key, label]) => (
+             <button key={key} onClick={() => setSelectedList(key)} className="bg-white p-4 rounded-md shadow-sm border border-slate-200 text-left hover:bg-emerald-50 transition-colors flex justify-between items-center group">
+               <span className="font-bold text-slate-700 group-hover:text-emerald-800">{label}</span>
+               <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full group-hover:bg-emerald-100 group-hover:text-emerald-700">{(lists[key] || []).length}</span>
+             </button>
+           ))}
+         </div>
+       </div>
+     )
+  }
+
+  const currentItems = lists[selectedList] || [];
+
+  return (
+     <div className="flex flex-col h-screen max-w-3xl mx-auto bg-slate-100">
+         <div className="bg-emerald-900 text-white p-4 sticky top-0 z-10 flex items-center shadow-md gap-3">
+           <button onClick={() => setSelectedList(null)} className="p-2 hover:bg-emerald-800 rounded-full transition-colors"><ArrowLeft className="h-6 w-6" /></button>
+           <h2 className="text-lg font-bold tracking-wide uppercase truncate">{LIST_NAMES[selectedList]}</h2>
+         </div>
+         <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-3">
+            {currentItems.length === 0 && <p className="text-center text-slate-500 italic mt-10">This list is currently empty.</p>}
+            {currentItems.map((item, idx) => (
+               <div key={idx} className="bg-white p-3 rounded-md shadow-sm border border-slate-200 flex items-start justify-between gap-3">
+                  {editingIndex === idx ? (
+                     <div className="flex-1 flex gap-2">
+                       <textarea className="flex-1 p-2 border border-emerald-500 rounded text-sm w-full outline-none" rows={3} value={editValue} onChange={e => setEditValue(e.target.value)} />
+                       <div className="flex flex-col gap-2 shrink-0">
+                         <button onClick={() => {
+                            const newLists = {...lists};
+                            newLists[selectedList][idx] = editValue;
+                            onUpdateBulkLists(newLists);
+                            setEditingIndex(null);
+                         }} className="bg-emerald-600 text-white px-3 py-2 rounded text-xs font-bold">SAVE</button>
+                         <button onClick={() => setEditingIndex(null)} className="bg-slate-200 text-slate-700 px-3 py-2 rounded text-xs font-bold">CANCEL</button>
+                       </div>
+                     </div>
+                  ) : (
+                     <>
+                       <span className="text-sm text-slate-800 flex-1 break-words whitespace-pre-wrap leading-relaxed">{item}</span>
+                       <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => { setEditingIndex(idx); setEditValue(item); }} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => {
+                             if(confirm('Delete this item?')) {
+                                const newLists = {...lists};
+                                newLists[selectedList].splice(idx, 1);
+                                onUpdateBulkLists(newLists);
+                             }
+                          }} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded"><Trash2 className="h-4 w-4" /></button>
+                       </div>
+                     </>
+                  )}
+               </div>
+            ))}
+         </div>
+         <div className="fixed bottom-0 left-0 right-0 bg-slate-200 border-t border-slate-300 z-20" style={{ padding: '1rem', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+            <div className="max-w-3xl mx-auto flex gap-2">
+               <textarea className="flex-1 border border-slate-300 p-3 rounded-md text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} placeholder="Add new item..." value={newValue} onChange={e => setNewValue(e.target.value)} />
+               <button onClick={() => {
+                  if(newValue.trim()==='') return;
+                  const newLists = {...lists};
+                  if(!newLists[selectedList]) newLists[selectedList] = [];
+                  newLists[selectedList].push(newValue.trim());
+                  onUpdateBulkLists(newLists);
+                  setNewValue('');
+               }} className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 rounded-md font-bold flex items-center justify-center transition-colors shadow-md"><Plus className="h-6 w-6" /></button>
+            </div>
+         </div>
+     </div>
+  );
+};
+
 
 const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, multiple = false, className = "mb-4" }) => {
   const id = `list-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
@@ -457,7 +647,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
   );
 };
 
-// --- NEW COMPONENT FOR MULTILINE RETAINED TEXT ---
+// --- COMPONENT FOR MULTILINE RETAINED TEXT ---
 const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete }) => {
   return (
     <div className="mb-4">
@@ -666,17 +856,20 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
       workElements: initialData.workElements || (initialData.workElement ? [initialData.workElement] : []),
       observers: initialData.observers || (initialData.observer ? [initialData.observer] : []),
       additionalPilots: initialData.additionalPilots || [],
-      cameraOperators: initialData.cameraOperators || []
+      cameraOperators: initialData.cameraOperators || [],
+      rpas: initialData.rpas ? (Array.isArray(initialData.rpas) ? initialData.rpas : [initialData.rpas]) : [],
+      payload: initialData.payload ? (Array.isArray(initialData.payload) ? initialData.payload : [initialData.payload]) : [],
+      aerodromesWithin100km: initialData.aerodromesWithin100km || ''
     };
     
     const nowStr = getCurrentLocalTime();
     return {
       start: nowStr,
       end: addMinutes(nowStr, 30),
-      location: '', description: '', pilot: '', additionalPilots: [], cameraOperators: [], observers: [], rpas: '', 
-      payload: '', opCategory: '', 
+      location: '', description: '', pilot: '', additionalPilots: [], cameraOperators: [], observers: [], rpas: [], 
+      payload: [], opCategory: '', 
       type: '', workElements: [], flightCount: 1, 
-      airspace: '', airspaceType: '', aerodromes: [], proximity: '',
+      airspace: '', airspaceType: '', aerodromesWithin100km: '',
       distance: '', 
       notams: '', navCanRef: '', navCanFile: null,
       temperature: '', windSpeed: '', windDir: '', visibility: '',
@@ -700,7 +893,38 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
     });
   };
   
-  const handleGPS = () => getCoordinates((c) => setCoords(c));
+  const handleGPS = () => getCoordinates((c) => {
+    setCoords(c);
+    
+    // Auto-calculate aerodromes
+    let nearbyText = "";
+    if (lists.aerodromes && Array.isArray(lists.aerodromes)) {
+      const nearby = [];
+      lists.aerodromes.forEach(aeroStr => {
+         // Expects format: "Name (CODE) - Freq - [lat, lng]"
+         const match = aeroStr.match(/^(.*?)\s*\((.*?)\)\s*-\s*(.*?)\s*-\s*\[(.*?),\s*(.*?)\]$/);
+         if (match) {
+            const [_, name, code, freq, latStr, lngStr] = match;
+            const dist = getDistanceFromLatLonInKm(parseFloat(c.lat), parseFloat(c.lng), parseFloat(latStr), parseFloat(lngStr));
+            if (dist <= 100) {
+               nearby.push(`${name} (${code}) - ${freq} MHz - GPS: ${latStr}, ${lngStr} (${dist.toFixed(1)}km)`);
+            }
+         }
+      });
+      if (nearby.length > 0) {
+         nearby.sort((a, b) => {
+           const distA = parseFloat(a.match(/\(([\d\.]+)km\)$/)[1]);
+           const distB = parseFloat(b.match(/\(([\d\.]+)km\)$/)[1]);
+           return distA - distB;
+         });
+         nearbyText = nearby.join('\n');
+      } else {
+         nearbyText = "No aerodromes within 100km detected.";
+      }
+    }
+    update('aerodromesWithin100km', nearbyText);
+  });
+  
   const handleCoordChange = (field, value) => setCoords(prev => ({ ...prev, [field]: value }));
   
   const handleRiskChange = (riskName, field, value) => {
@@ -759,7 +983,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
 
     const keysToCheck = [
       'pilots', 'additionalPilots', 'cameraOperators', 'observers', 'rpas', 'payload', 'opCategories', 'types', 'workElements', 
-      'locations', 'airspaces', 'aerodromes', 'airspaceTypes', 'referenceGpsUnits',
+      'locations', 'airspaces', 'airspaceTypes', 'referenceGpsUnits',
       'approachAlts', 'emergencySites', 'descriptions', 'preflightIssuesList'
     ];
     
@@ -767,8 +991,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
       'pilots': 'pilot', 'additionalPilots': 'additionalPilots', 'cameraOperators': 'cameraOperators', 'observers': 'observers', 
       'rpas': 'rpas', 'payload': 'payload', 'opCategories': 'opCategory', 'types': 'type',
       'workElements': 'workElements',
-      'locations': 'location', 'airspaces': 'airspace', 'aerodromes': 'aerodromes', 
-      'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit',
+      'locations': 'location', 'airspaces': 'airspace', 'airspaceTypes': 'airspaceType', 'referenceGpsUnits': 'referenceGpsUnit',
       'approachAlts': 'approachAlt', 'emergencySites': 'emergencySite',
       'descriptions': 'description', 'preflightIssuesList': 'preflightIssues'
     };
@@ -850,16 +1073,16 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
               <div className="bg-slate-50 p-3 rounded border border-slate-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-bold text-slate-500 uppercase">GPS Coordinates</span>
-                  <button onClick={handleGPS} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors">ACQUIRE GPS</button>
+                  <button onClick={handleGPS} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">ACQUIRE GPS</button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
-                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono" value={coords.lat || ''} onChange={(e) => handleCoordChange('lat', e.target.value)} placeholder="0.000000" />
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={coords.lat || ''} onChange={(e) => handleCoordChange('lat', e.target.value)} placeholder="0.000000" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
-                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
                   </div>
                 </div>
               </div>
@@ -892,17 +1115,16 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
               <DynamicSelect label="Camera Operators" icon={Eye} {...getListProps('cameraOperators', 'cameraOperators', true)} />
               <DynamicSelect label="Observers" icon={Eye} {...getListProps('observers', 'observers', true)} />
               
-              <DynamicSelect label="RPAS Model and Reg No." icon={Crosshair} {...getListProps('rpas', 'rpas')} />
-              <DynamicSelect label="Payload" icon={Box} {...getListProps('payload', 'payload')} />
+              <DynamicSelect label="RPAS Model and Reg No." icon={Crosshair} {...getListProps('rpas', 'rpas', true)} />
+              <DynamicSelect label="Payload" icon={Box} {...getListProps('payload', 'payload', true)} />
               <DynamicSelect label="Operation Category" icon={Activity} {...getListProps('opCategory', 'opCategories')} />
               
               <DynamicSelect label="Airspace Class" icon={Cloud} {...getListProps('airspace', 'airspaces')} />
               <DynamicSelect label="Airspace Type" icon={Cloud} {...getListProps('airspaceType', 'airspaceTypes')} />
-              <DynamicSelect label="Nearby Aerodromes / Frequency" icon={MapPin} {...getListProps('aerodromes', 'aerodromes', true)} />
               
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Proximity to Nearest Aerodrome (km)</label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.proximity} onChange={(e) => update('proximity', e.target.value)} placeholder="e.g. 8km West" />
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-700" /> Aerodromes within 100km</label>
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-32 text-xs font-mono bg-slate-50" value={formData.aerodromesWithin100km || ''} onChange={(e) => update('aerodromesWithin100km', e.target.value)} placeholder="Will auto-populate when GPS is acquired..." />
               </div>
                <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Applicable NOTAMS</label>
@@ -994,7 +1216,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
                     <div className="w-full sm:w-28 shrink-0">
                       <DynamicSelect label="Alt (m)" icon={null} customClass="" {...getListProps('approachAlt', 'approachAlts')} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 mb-4 sm:mb-0">
                       <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label>
                       <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">Select...</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}</select>
                     </div>
@@ -1108,9 +1330,9 @@ const PrintMissionView = ({ mission, onBack }) => {
             <p className="text-sm mb-1"><strong>Additional Pilots:</strong> {Array.isArray(mission.additionalPilots) ? mission.additionalPilots.join(', ') : 'None'}</p>
             <p className="text-sm mb-1"><strong>Camera Operators:</strong> {Array.isArray(mission.cameraOperators) ? mission.cameraOperators.join(', ') : 'None'}</p>
             <p className="text-sm mb-1"><strong>Observers:</strong> {Array.isArray(mission.observers) ? mission.observers.join(', ') : (mission.observer || 'None')}</p>
-            <p className="text-sm mb-1 mt-2"><strong>RPAS:</strong> {mission.rpas}</p>
+            <p className="text-sm mb-1 mt-2"><strong>RPAS:</strong> {Array.isArray(mission.rpas) ? mission.rpas.join(', ') : (mission.rpas || 'N/A')}</p>
             <p className="text-sm mb-1"><strong>Op Category:</strong> {mission.opCategory || 'N/A'}</p>
-            <p className="text-sm mb-1"><strong>Payload:</strong> {mission.payload || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Payload:</strong> {Array.isArray(mission.payload) ? mission.payload.join(', ') : (mission.payload || 'N/A')}</p>
           </div>
         </div>
 
@@ -1122,8 +1344,10 @@ const PrintMissionView = ({ mission, onBack }) => {
             <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
             <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
             <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
-            <p className="text-sm mb-1"><strong>Aerodromes:</strong> {Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None')}</p>
-            <p className="text-sm mb-1"><strong>Proximity:</strong> {mission.proximity || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>Aerodromes within 100km:</strong> {mission.aerodromesWithin100km ? mission.aerodromesWithin100km : (Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None'))}</p>
+            <p className="text-sm mb-1"><strong>NOTAMS:</strong> {mission.notams || 'None'}</p>
+            <p className="text-sm mb-1"><strong>NavCan Ref:</strong> {mission.navCanRef || 'N/A'}</p>
+            <p className="text-sm mb-1 mt-2"><strong>Approach Alt:</strong> {mission.approachAlt || 'N/A'}, <strong>Route:</strong> {mission.approachRoute || 'N/A'}</p>
             <p className="text-sm mb-1"><strong>Emergency Site:</strong> {mission.emergencySite || 'N/A'}</p>
             <p className="text-sm mb-1 mt-2"><strong>Objectives:</strong> {mission.description || 'N/A'}</p>
           </div>
@@ -1194,7 +1418,7 @@ const PrintMissionView = ({ mission, onBack }) => {
   );
 };
 
-const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onBackup, onRestore, onPrint, scrollRef }) => {
+const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onManageLists, onBackup, onRestore, onPrint, scrollRef }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -1219,11 +1443,16 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
       
       <div className="space-y-4">
         <header className="bg-emerald-900 text-white p-6 rounded-md shadow-lg">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3 tracking-wider">
-              <Crosshair className="h-6 w-6 text-emerald-400 shrink-0" /> DFO RPAS FLIGHT LOG
-            </h1>
-            <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest sm:ml-9">Fishery Officer Field Unit</p>
+          <div className="flex items-center sm:items-start gap-3">
+            <Crosshair className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-400 shrink-0 mt-0.5 sm:mt-1" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-wider leading-tight">
+                DFO RPAS FLIGHT LOG
+              </h1>
+              <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">
+                Fishery Officer Field Unit
+              </p>
+            </div>
           </div>
         </header>
         
@@ -1238,9 +1467,10 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
         <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
         <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> Full Report</button>
+        <button onClick={onManageLists} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><List className="h-4 w-4 text-indigo-600" /> Saved Lists</button>
         <button onClick={onBackup} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
         <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
           <Upload className="h-4 w-4 text-amber-600" /> Restore Data
@@ -1440,6 +1670,7 @@ export default function App() {
           onDelete={handleDeleteMission}
           onExport={() => exportToCSV(missions)}
           onExportFull={() => exportToHTML(missions)}
+          onManageLists={() => setView('saved-lists')}
           onBackup={() => backupData(missions, lists)}
           onRestore={handleRestore}
           onPrint={(mission) => { setEditingMission(mission); setView('print'); }}
@@ -1460,6 +1691,13 @@ export default function App() {
         <PrintMissionView 
           mission={editingMission} 
           onBack={() => { setView('dashboard'); }} 
+        />
+      )}
+      {view === 'saved-lists' && (
+        <SavedListsView 
+          lists={lists} 
+          onUpdateBulkLists={handleUpdateBulkLists} 
+          onBack={() => setView('dashboard')} 
         />
       )}
       
