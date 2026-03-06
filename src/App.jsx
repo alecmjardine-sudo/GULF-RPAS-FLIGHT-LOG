@@ -8,6 +8,144 @@ import {
 } from 'lucide-react';
 
 /**
+ * --- TRANSLATION DICTIONARY ---
+ */
+const TRANSLATIONS = {
+  // General & Labels
+  "Yes": "Oui", "No": "Non", "None": "Aucun", "None specified": "Aucune spécifiée", "N/A": "S.O.",
+  "No risks flagged.": "Aucun risque signalé.",
+  
+  // Headers & Titles
+  "DFO RPAS FLIGHT LOG": "CARNET DE VOL SATP DU MPO",
+  "Fishery Officer Field Unit": "Unité opérationnelle des agents des pêches",
+  "Compliant with CARs Part IX - TC and DFO Policy Draft": "Conforme à la partie IX du RAC - Ébauche de la politique de TC et du MPO",
+  "Regional RPAS program coordinator: Philip Bouma": "Coordonnateur régional du programme SATP : Philip Bouma",
+  "Chief of Enforcement Operations: Ulysse Brideau": "Chef des opérations d'application de la loi : Ulysse Brideau",
+  "Note: Backup your data often": "Remarque : Sauvegardez vos données régulièrement",
+  
+  // Dashboard Buttons
+  "CSV Report": "Rapport CSV", "Full Report": "Rapport complet", "Saved Lists": "Listes de référence",
+  "Backup Data": "Sauvegarder les données", "Restore Data": "Restaurer les données",
+  "NEW MISSION": "NOUVELLE MISSION", "Search all mission data...": "Rechercher dans les données de mission...",
+  "Recorded Missions": "Missions enregistrées", "RECORDS": "DOSSIERS",
+  "No mission data found.": "Aucune donnée de mission trouvée.",
+  "Edit": "Modifier", "Print": "Imprimer", "Delete": "Supprimer", "No Map": "Aucune carte",
+
+  // Form Steps
+  "EDIT MISSION": "MODIFIER LA MISSION", "STEP": "ÉTAPE", "Back": "Retour", "Next": "Suivant", "Save Mission": "Enregistrer la mission",
+  
+  // Step 1
+  "TIME & LOCATION": "HEURE ET LIEU", "Start (24h)": "Début (24h)", "End (24h)": "Fin (24h)",
+  "Location / Site Name": "Emplacement / Nom du site", "GPS Coordinates": "Coordonnées GPS",
+  "ACQUIRE GPS": "ACQUÉRIR GPS", "Latitude": "Latitude", "Longitude": "Longitude",
+  "SECONDARY GPS COORDINATES (REFERENCE)": "COORDONNÉES GPS SECONDAIRES (RÉFÉRENCE)",
+  "REFERENCE GPS UNIT": "UNITÉ GPS DE RÉFÉRENCE",
+  
+  // Step 2
+  "OPERATIONAL RESOURCES": "RESSOURCES OPÉRATIONNELLES", "Pilot In Command": "Pilote commandant de bord",
+  "Additional Pilots": "Pilotes supplémentaires", "Camera Operators": "Opérateurs de caméra",
+  "Observers": "Observateurs visuels", "RPAS Model and Reg No.": "Modèle et no d'immatriculation du SATP",
+  "Payload": "Charge utile", "Operation Category": "Catégorie d'utilisation",
+  "Airspace Class": "Classe d'espace aérien", "Airspace Type": "Type d'espace aérien",
+  "Aerodromes within 100km": "Aérodromes dans un rayon de 100 km", "POPULATE": "GÉNÉRER",
+  "Will auto-populate when GPS is acquired or populate is pressed...": "Se remplira automatiquement lors de l'acquisition des coordonnées GPS ou en appuyant sur Générer...",
+  "Applicable NOTAMS": "NOTAM en vigueur", "Enter applicable NOTAMs...": "Saisir les NOTAM en vigueur...",
+  "Nav Canada Ref No.": "No de réf. de NAV CANADA", "Enter Ref No.": "Saisir le no de réf.",
+  "NAV Canada File Upload": "Téléversement du fichier de NAV CANADA", "File Attached": "Fichier joint",
+  "Upload File / Image": "Téléverser un fichier / image", "WEATHER CONDITIONS": "CONDITIONS MÉTÉOROLOGIQUES",
+  "Temp (°C)": "Temp. (°C)", "Wind (km/h)": "Vent (km/h)", "Wind Direction": "Direction du vent",
+  "Visibility (km)": "Visibilité (km)", "Select...": "Sélectionner...", "Weather Notes": "Notes météorologiques",
+  "Attach Forecast / Screenshot": "Joindre les prévisions / capture d'écran", "Click to upload screenshot": "Cliquer pour téléverser une capture d'écran",
+  "AFTER MISSION REPORT": "COMPTE RENDU POST-VOL", "Outcomes/Summary": "Bilan / Résumé",
+  "Incidents/Maintenance": "Incidents / Maintenance", "MISSION": "MISSION", "Mission Type": "Type de mission",
+  "Work Elements": "Activités opérationnelles", "No. of Flights": "Nbre de vols", "Distance to Operational Area (km)": "Distance de la zone d'opération (km)",
+  "Approach and Departure": "Approche et départ", "Alt (m)": "Alt. (m)", "Route": "Trajectoire",
+  "Emergency Landing Site": "Site d'atterrissage d'urgence", "Description / Objectives": "Description / Objectifs",
+  "MISSION AREA SKETCH": "CROQUIS DE LA ZONE DES OPÉRATIONS", "LOAD MAP": "CHARGER UNE CARTE", "UNDO": "ANNULER", "CLEAR": "EFFACER",
+  
+  // Step 3
+  "Assessment Required:": "Évaluation requise :", 
+  "Select all hazards present. Mitigation strategies are mandatory for Medium and High risk items.": "Sélectionner tous les dangers présents. Les stratégies d'atténuation sont obligatoires pour les risques de niveau moyen et élevé.",
+  "Risk Level": "Niveau de risque", "Low": "Faible", "Medium": "Moyen", "High": "Élevé", "NO LEVEL": "NON ÉVALUÉ",
+  "Description": "Description", "Mitigation": "Mesure d'atténuation", "PRE-FLIGHT CHECKLIST": "LISTE DE VÉRIFICATIONS PRÉVOL",
+  "COMPLETED CHECKLIST": "LISTE DE VÉRIFICATIONS REMPLIE", "I have completed the pre-flight checklist": "J'ai rempli la liste de vérifications prévol",
+  "Issues / Concerns": "Problèmes / Préoccupations",
+  
+  // Components & Selects
+  "Remove tag": "Supprimer l'étiquette", "Type and press + to add...": "Saisir et appuyer sur + pour ajouter...",
+  "Add Entry": "Ajouter l'entrée", "Delete from saved options": "Supprimer des options sauvegardées",
+  "Type an entry and press Enter to add it to the mission.": "Saisir une entrée et appuyer sur Entrée pour l'ajouter à la mission.",
+  "Select or type...": "Sélectionner ou saisir...", "Insert a previously saved entry...": "Insérer une entrée sauvegardée...",
+  "Delete this exact entry from saved list": "Supprimer cette entrée exacte de la liste sauvegardée",
+  "Type here...": "Saisir ici...",
+  
+  // Saved Lists Manager
+  "SAVED LISTS MANAGER": "GESTIONNAIRE DES LISTES DE RÉFÉRENCE", "This list is currently empty.": "Cette liste est actuellement vide.",
+  "SAVE": "ENREGISTRER", "CANCEL": "ANNULER", "Add new item...": "Ajouter un nouvel élément...",
+  "Locations / Site Names": "Emplacements / Noms des sites", "Pilots In Command": "Pilotes commandants de bord",
+  "RPAS Models & Reg": "Modèles et immatriculations de SATP", "Payloads": "Charges utiles", "Operation Categories": "Catégories d'opérations",
+  "Mission Types": "Types de missions", "Airspace Classes": "Classes d'espace aérien", "Airspace Types": "Types d'espace aérien",
+  "Aerodromes Info": "Infos sur les aérodromes", "Reference GPS Units": "Unités GPS de référence", "Approach Altitudes": "Altitudes d'approche",
+  "Emergency Landing Sites": "Sites d'atterrissage d'urgence", "Descriptions / Objectives": "Descriptions / Objectifs",
+  "Pre-Flight Issues / Incidents": "Problèmes / Incidents prévol", "Risk Descriptions": "Descriptions des risques",
+  "Risk Mitigations": "Mesures d'atténuation des risques",
+  
+  // Weather Options
+  "Excellent (above 10 km)": "Excellente (plus de 10 km)", "Good (5-10 km)": "Bonne (5-10 km)",
+  "Fair (2-5 km)": "Moyenne (2-5 km)", "Poor (1-2 km)": "Faible (1-2 km)",
+  
+  // Wind Dirs
+  "W": "O", "WNW": "ONO", "NW": "NO", "NNW": "NNO", "SW": "SO", "WSW": "OSO", "SSW": "SSO",
+  
+  // Print & CSV View specific
+  "Print Report": "Imprimer le rapport", "Mission ID": "ID de mission", "Date & Time": "Date et heure",
+  "Start Time": "Heure de début", "End Time": "Heure de fin", "Lat": "Lat.", "Lng": "Long.", "Secondary Lat": "Lat. secondaire", "Secondary Lng": "Long. secondaire",
+  "Primary GPS": "GPS principal", "Ref GPS": "GPS de réf.", "RPAS / Payload": "SATP / Charge utile",
+  "Op Category / Mission Type": "Catégorie d'opération / Type de mission", "Flights / Distance": "Vols / Distance",
+  "Airspace": "Espace aérien", "NOTAMS / NavCan Ref": "NOTAM / Réf. NAV CANADA", "Approach / Emergency Site": "Approche / Site d'urgence",
+  "Mission Objectives": "Objectifs de la mission", "Risk Assessment": "Évaluation des risques",
+  "Risk Factor": "Facteur de risque", "Mitigation Strategy": "Stratégie d'atténuation", "Mission Area Map": "Carte de la zone des opérations",
+  "Weather Forecast / Screenshot": "Prévisions météo / Capture d'écran", "NAV Canada Authorization File": "Fichier d'autorisation de NAV CANADA",
+  "Pilot": "Pilote", "Op Category": "Catégorie d'opération", "Proximity": "Proximité", "Approach Alt": "Alt. d'approche",
+  "Preflight Checked": "Prévol vérifié", "Issues": "Problèmes", "Outcomes": "Bilan", "Maintenance": "Maintenance",
+  "Flights": "Vols", "Distance (km)": "Distance (km)", "Aerodromes": "Aérodromes", "Start:": "Début :", "End:": "Fin :",
+  
+  // iOS
+  "Install DFO RPAS Log": "Installer le carnet de vol SATP",
+  "To install this app on your iPhone, tap the ": "Pour installer cette application sur votre iPhone, appuyez sur l'icône ",
+  " icon below, then select ": " ci-dessous, puis sélectionnez ",
+  "Add to Home Screen": "Sur l'écran d'accueil",
+  "CLOSE": "FERMER",
+  "INSTALL APP": "INSTALLER L'APPLICATION",
+  
+  // Risks Array (Display only)
+  'Presence of people': 'Présence de personnes',
+  'Proximity to built-up area': 'Proximité de zones bâties',
+  'Proximity to obstacles': 'Proximité d\'obstacles',
+  'Proximity to protected birds or animals': 'Proximité d\'oiseaux ou d\'animaux protégés',
+  'Proximity to air traffic': 'Proximité de la circulation aérienne',
+  'Operation in control zones': 'Opération dans des zones de contrôle',
+  'Airspace restriction (F zone)': 'Restriction d\'espace aérien (Zone F)',
+  'Risk of radio interference': 'Risque d\'interférence radio',
+  'Proximity to magnetic fields': 'Proximité de champs magnétiques',
+  'Environment with sand or dust in suspension': 'Environnement avec sable ou poussière en suspension',
+  'Proximity to glass buildings': 'Proximité de bâtiments vitrés',
+  'Strong wind condition': 'Conditions de vent fort',
+  'Very cold weather': 'Temps très froid',
+  'Heat wave condition (heat stress)': 'Conditions de canicule (stress thermique)',
+  'Municipal restriction': 'Restrictions municipales',
+  'Risk of intrusion into privacy': 'Risque d\'atteinte à la vie privée',
+  'Proximity of pyrotechnic': 'Proximité de matériel pyrotechnique',
+  'Drone not contrasted with the horizon': 'SATP ne contrastant pas avec l\'horizon',
+  'Any other risk': 'Tout autre risque'
+};
+
+const t = (key, lang) => {
+  if (lang === 'en') return key;
+  return TRANSLATIONS[key] || key;
+};
+
+/**
  * --- DATABASE SETUP (DEXIE) ---
  */
 class DroneLogDatabase extends Dexie {
@@ -56,9 +194,9 @@ const getCurrentLocalTime = () => {
   return (new Date(now - offset)).toISOString().slice(0, 16);
 };
 
-const getCoordinates = (callback) => {
+const getCoordinates = (callback, lang) => {
   if (!("geolocation" in navigator)) {
-    alert("Geolocation is not supported by your browser.");
+    alert(lang === 'fr' ? "La géolocalisation n'est pas prise en charge par votre navigateur." : "Geolocation is not supported by your browser.");
     return;
   }
   const success = (position) => {
@@ -87,9 +225,9 @@ const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
 };
 
 // --- CSV EXPORT FUNCTION (Images Removed) ---
-const exportToCSV = (missions) => {
+const exportToCSV = (missions, lang) => {
   if (!missions || missions.length === 0) {
-    alert("No missions to export.");
+    alert(lang === 'fr' ? "Aucune mission à exporter." : "No missions to export.");
     return;
   }
 
@@ -104,37 +242,37 @@ const exportToCSV = (missions) => {
     };
 
     const formatRisks = (risks) => {
-      if (!risks) return "None";
+      if (!risks) return t("None", lang);
       const entries = Object.entries(risks);
-      if (entries.length === 0) return "None";
+      if (entries.length === 0) return t("None", lang);
       
       return entries
         .filter(([_, val]) => val && val.checked)
         .map(([key, val]) => {
           const level = val.level || '-';
-          const mit = val.mitigation ? ` (Mitigation: ${val.mitigation})` : '';
-          return `${key} [${level}]${mit}`;
+          const mit = val.mitigation ? ` (${t('Mitigation', lang)}: ${val.mitigation})` : '';
+          return `${t(key, lang)} [${t(level, lang)}]${mit}`;
         })
         .join(" | ");
     };
 
     const headers = [
-      "Mission ID", "Start Time", "End Time", "Location", "Lat", "Lng", 
-      "Secondary Lat", "Secondary Lng", "Ref GPS Unit",
-      "Pilot In Command", "Additional Pilots", "Camera Operators", "Observers", "RPAS Model/Reg", "Payload", "Op Category", "Mission Type", "Work Elements",
-      "Flights", "Distance (km)", "Airspace Class", "Airspace Type", "Aerodromes within 100km", "NOTAMS", "NavCan Ref",
-      "Temp (C)", "Wind Speed (km/h)", "Wind Dir", "Visibility (km)", "Weather Notes",
-      "Approach Alt", "Approach Route", "Emergency Site",
-      "Preflight Completed", "Preflight Issues",
-      "Outcomes/Summary", "Incidents/Maintenance",
-      "Description", "Risk Summary"
+      t("Mission ID", lang), t("Start Time", lang), t("End Time", lang), t("Location", lang), t("Lat", lang), t("Lng", lang), 
+      t("Secondary Lat", lang), t("Secondary Lng", lang), t("Ref GPS Unit", lang),
+      t("Pilot In Command", lang), t("Additional Pilots", lang), t("Camera Operators", lang), t("Observers", lang), t("RPAS Model/Reg", lang), t("Payload", lang), t("Op Category", lang), t("Mission Type", lang), t("Work Elements", lang),
+      t("Flights", lang), t("Distance (km)", lang), t("Airspace Class", lang), t("Airspace Type", lang), t("Aerodromes within 100km", lang), t("NOTAMS", lang), t("NavCan Ref", lang),
+      t("Temp (°C)", lang), t("Wind Speed (km/h)", lang), t("Wind Direction", lang), t("Visibility (km)", lang), t("Weather Notes", lang),
+      t("Approach Alt", lang), t("Approach Route", lang), t("Emergency Landing Site", lang),
+      t("Preflight Completed", lang), t("Preflight Issues", lang),
+      t("Outcomes/Summary", lang), t("Incidents/Maintenance", lang),
+      t("Description / Objectives", lang), t("Risk Summary", lang)
     ];
 
     const sortedMissions = [...missions].sort((a, b) => new Date(b.start) - new Date(a.start));
 
     const rows = sortedMissions.map(m => {
       // Fallback to legacy fields if the new field is missing (protects old data)
-      const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km : (Array.isArray(m.aerodromes) ? m.aerodromes.join('; ') : (m.aerodromes || ''));
+      const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km : (Array.isArray(m.aerodromesInfo) ? m.aerodromesInfo.join('; ') : (m.aerodromesInfo || ''));
       const workElemStr = Array.isArray(m.workElements) ? m.workElements.join('; ') : (m.workElements || m.workElement || '');
       const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join('; ') : '';
       const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join('; ') : '';
@@ -170,13 +308,13 @@ const exportToCSV = (missions) => {
         m.navCanRef,
         m.temperature,
         m.windSpeed,
-        m.windDir,
-        m.visibility,
+        m.windDir ? t(m.windDir, lang) : '',
+        m.visibility ? t(m.visibility, lang) : '',
         m.weatherText,
         m.approachAlt,
-        m.approachRoute,
+        m.approachRoute ? t(m.approachRoute, lang) : '',
         m.emergencySite,
-        m.preflightCompleted ? 'Yes' : 'No',
+        m.preflightCompleted ? t('Yes', lang) : t('No', lang),
         m.preflightIssues,
         m.outcomesSummary,
         m.incidentsMaintenance,
@@ -198,14 +336,14 @@ const exportToCSV = (missions) => {
     
   } catch (err) {
     console.error("Export Error:", err);
-    alert("Failed to generate CSV. Check console for details.\nError: " + err.message);
+    alert((lang === 'fr' ? "Échec de la génération du CSV. Erreur: " : "Failed to generate CSV. Error: ") + err.message);
   }
 };
 
 // --- FULL HTML REPORT EXPORT ---
-const exportToHTML = (missions) => {
+const exportToHTML = (missions, lang) => {
   if (!missions || missions.length === 0) {
-    alert("No missions to export.");
+    alert(lang === 'fr' ? "Aucune mission à exporter." : "No missions to export.");
     return;
   }
 
@@ -213,10 +351,10 @@ const exportToHTML = (missions) => {
 
   let html = `
   <!DOCTYPE html>
-  <html lang="en">
+  <html lang="${lang}">
   <head>
     <meta charset="UTF-8">
-    <title>DFO Full Mission Report</title>
+    <title>${t("DFO RPAS Flight Log - Full Report", lang)}</title>
     <style>
       body { font-family: Arial, sans-serif; background-color: #f1f5f9; color: #333; padding: 20px; }
       .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
@@ -237,56 +375,56 @@ const exportToHTML = (missions) => {
   <body>
     <div class="container">
       <div class="header">
-        <h1>DFO RPAS Flight Log - Full Report</h1>
-        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+        <h1>${t("DFO RPAS Flight Log - Full Report", lang)}</h1>
+        <p><strong>${t("Generated:", lang)}</strong> ${new Date().toLocaleString()}</p>
       </div>
   `;
 
   sortedMissions.forEach(m => {
-    const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${k} (${v.level || 'Unrated'} - Mitigation: ${v.mitigation || 'None'})`).join('<br/>') : 'None';
-    const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km.replace(/\n/g, '<br/>') : (Array.isArray(m.aerodromes) ? m.aerodromes.join(', ') : (m.aerodromes || 'None'));
-    const workElemStr = Array.isArray(m.workElements) ? m.workElements.join(', ') : (m.workElements || m.workElement || 'N/A');
-    const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join(', ') : 'None';
-    const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join(', ') : 'None';
-    const observersStr = Array.isArray(m.observers) ? m.observers.join(', ') : (m.observer || 'None');
-    const rpasStr = Array.isArray(m.rpas) ? m.rpas.join(', ') : (m.rpas || 'N/A');
-    const payloadStr = Array.isArray(m.payload) ? m.payload.join(', ') : (m.payload || 'N/A');
+    const risks = m.risks ? Object.entries(m.risks).filter(([_, v]) => v.checked).map(([k, v]) => `${t(k, lang)} (${t(v.level || 'Unrated', lang)} - ${t("Mitigation:", lang)} ${v.mitigation || t('None', lang)})`).join('<br/>') : t('None', lang);
+    const aeroOut = m.aerodromesWithin100km ? m.aerodromesWithin100km.replace(/\n/g, '<br/>') : (Array.isArray(m.aerodromesInfo) ? m.aerodromesInfo.join(', ') : (m.aerodromesInfo || t('None', lang)));
+    const workElemStr = Array.isArray(m.workElements) ? m.workElements.join(', ') : (m.workElements || m.workElement || t('N/A', lang));
+    const addPilotsStr = Array.isArray(m.additionalPilots) ? m.additionalPilots.join(', ') : t('None', lang);
+    const camOpsStr = Array.isArray(m.cameraOperators) ? m.cameraOperators.join(', ') : t('None', lang);
+    const observersStr = Array.isArray(m.observers) ? m.observers.join(', ') : (m.observer || t('None', lang));
+    const rpasStr = Array.isArray(m.rpas) ? m.rpas.join(', ') : (m.rpas || t('N/A', lang));
+    const payloadStr = Array.isArray(m.payload) ? m.payload.join(', ') : (m.payload || t('N/A', lang));
     
     html += `
       <div class="mission-card">
-        <h2 class="mission-title">${m.location || 'Unknown Location'} - ${formatDateTime24h(m.start)}</h2>
+        <h2 class="mission-title">${m.location || t('Unknown Location', lang)} - ${formatDateTime24h(m.start)}</h2>
         <table>
           <tbody>
-            <tr><th>Mission ID</th><td>${m.id || 'N/A'}</td></tr>
-            <tr><th>Date & Time</th><td>Start: ${formatDateTime24h(m.start)}<br/>End: ${formatDateTime24h(m.end)}</td></tr>
-            <tr><th>Primary GPS</th><td>Lat: ${m.coords?.lat || '-'}, Lng: ${m.coords?.lng || '-'}</td></tr>
-            <tr><th>Secondary GPS</th><td>Lat: ${m.secondaryLat || '-'}, Lng: ${m.secondaryLng || '-'} (Ref Unit: ${m.referenceGpsUnit || 'N/A'})</td></tr>
-            <tr><th>Pilot In Command</th><td>${m.pilot || 'N/A'}</td></tr>
-            <tr><th>Additional Pilots</th><td>${addPilotsStr}</td></tr>
-            <tr><th>Camera Operators</th><td>${camOpsStr}</td></tr>
-            <tr><th>Observers</th><td>${observersStr}</td></tr>
-            <tr><th>RPAS / Payload</th><td>${rpasStr} / ${payloadStr}</td></tr>
-            <tr><th>Op Category / Mission Type</th><td>${m.opCategory || 'N/A'} / ${m.type || 'N/A'}</td></tr>
-            <tr><th>Work Elements</th><td>${workElemStr}</td></tr>
-            <tr><th>Flights / Distance</th><td>${m.flightCount || 1} flight(s) / ${m.distance || 'N/A'} km</td></tr>
-            <tr><th>Airspace</th><td>${m.airspace || 'N/A'} (${m.airspaceType || 'N/A'})</td></tr>
-            <tr><th>Aerodromes within 100km</th><td>${aeroOut}</td></tr>
-            <tr><th>NOTAMS / NavCan Ref</th><td>${m.notams || 'None'} / ${m.navCanRef || 'N/A'}</td></tr>
-            <tr><th>Approach / Emergency Site</th><td>Alt: ${m.approachAlt || 'N/A'}, Route: ${m.approachRoute || 'N/A'} / Site: ${m.emergencySite || 'None'}</td></tr>
-            <tr><th>Weather Conditions</th><td>Temp: ${m.temperature || '-'}°C, Wind: ${m.windSpeed || '-'}km/h ${m.windDir || ''}, Vis: ${m.visibility || '-'}</td></tr>
-            <tr><th>Weather Notes</th><td>${m.weatherText || 'None'}</td></tr>
-            <tr><th>Preflight Checklist</th><td>Completed: ${m.preflightCompleted ? 'Yes' : 'No'}<br/>Issues: ${m.preflightIssues || 'None'}</td></tr>
-            <tr><th>Mission Objectives</th><td>${m.description || 'None'}</td></tr>
-            <tr><th>Outcomes / Summary</th><td>${m.outcomesSummary || 'None'}</td></tr>
-            <tr><th>Incidents / Maintenance</th><td>${m.incidentsMaintenance || 'None'}</td></tr>
-            <tr><th>Risk Assessment</th><td>${risks || 'None'}</td></tr>
+            <tr><th>${t("Mission ID", lang)}</th><td>${m.id || t('N/A', lang)}</td></tr>
+            <tr><th>${t("Date & Time", lang)}</th><td>${t("Start:", lang)} ${formatDateTime24h(m.start)}<br/>${t("End:", lang)} ${formatDateTime24h(m.end)}</td></tr>
+            <tr><th>${t("Primary GPS", lang)}</th><td>Lat: ${m.coords?.lat || '-'}, Lng: ${m.coords?.lng || '-'}</td></tr>
+            <tr><th>${t("Secondary GPS", lang)}</th><td>Lat: ${m.secondaryLat || '-'}, Lng: ${m.secondaryLng || '-'} (${t("Ref Unit:", lang)} ${m.referenceGpsUnit || t('N/A', lang)})</td></tr>
+            <tr><th>${t("Pilot In Command", lang)}</th><td>${m.pilot || t('N/A', lang)}</td></tr>
+            <tr><th>${t("Additional Pilots", lang)}</th><td>${addPilotsStr}</td></tr>
+            <tr><th>${t("Camera Operators", lang)}</th><td>${camOpsStr}</td></tr>
+            <tr><th>${t("Observers", lang)}</th><td>${observersStr}</td></tr>
+            <tr><th>${t("RPAS / Payload", lang)}</th><td>${rpasStr} / ${payloadStr}</td></tr>
+            <tr><th>${t("Op Category / Mission Type", lang)}</th><td>${m.opCategory || t('N/A', lang)} / ${m.type || t('N/A', lang)}</td></tr>
+            <tr><th>${t("Work Elements", lang)}</th><td>${workElemStr}</td></tr>
+            <tr><th>${t("Flights / Distance", lang)}</th><td>${m.flightCount || 1} ${t("flight(s)", lang)} / ${m.distance || t('N/A', lang)} km</td></tr>
+            <tr><th>${t("Airspace", lang)}</th><td>${m.airspace || t('N/A', lang)} (${m.airspaceType || t('N/A', lang)})</td></tr>
+            <tr><th>${t("Aerodromes within 100km", lang)}</th><td>${aeroOut}</td></tr>
+            <tr><th>${t("NOTAMS / NavCan Ref", lang)}</th><td>${m.notams || t('None', lang)} / ${m.navCanRef || t('N/A', lang)}</td></tr>
+            <tr><th>${t("Approach / Emergency Site", lang)}</th><td>Alt: ${m.approachAlt || t('N/A', lang)}, Route: ${m.approachRoute ? t(m.approachRoute, lang) : t('N/A', lang)} / Site: ${m.emergencySite || t('None', lang)}</td></tr>
+            <tr><th>${t("Weather Conditions", lang)}</th><td>Temp: ${m.temperature || '-'}°C, Vent: ${m.windSpeed || '-'}km/h ${m.windDir ? t(m.windDir, lang) : ''}, Vis: ${m.visibility ? t(m.visibility, lang) : '-'}</td></tr>
+            <tr><th>${t("Weather Notes", lang)}</th><td>${m.weatherText || t('None', lang)}</td></tr>
+            <tr><th>${t("Preflight Checklist", lang)}</th><td>Completed: ${m.preflightCompleted ? t('Yes', lang) : t('No', lang)}<br/>Issues: ${m.preflightIssues || t('None', lang)}</td></tr>
+            <tr><th>${t("Mission Objectives", lang)}</th><td>${m.description || t('None', lang)}</td></tr>
+            <tr><th>${t("Outcomes / Summary", lang)}</th><td>${m.outcomesSummary || t('None', lang)}</td></tr>
+            <tr><th>${t("Incidents / Maintenance", lang)}</th><td>${m.incidentsMaintenance || t('None', lang)}</td></tr>
+            <tr><th>${t("Risk Assessment", lang)}</th><td>${risks}</td></tr>
           </tbody>
         </table>
         
         <div class="image-grid">
-          ${m.sketch ? `<div class="img-box"><h4>Map Sketch</h4><img src="${m.sketch}" alt="Map Sketch" /></div>` : ''}
-          ${m.weatherImage ? `<div class="img-box"><h4>Weather Screenshot</h4><img src="${m.weatherImage}" alt="Weather Screenshot" /></div>` : ''}
-          ${m.navCanFile ? `<div class="img-box"><h4>Nav Canada Auth</h4><img src="${m.navCanFile}" alt="Nav Canada Auth" /></div>` : ''}
+          ${m.sketch ? `<div class="img-box"><h4>${t("Mission Area Sketch", lang)}</h4><img src="${m.sketch}" alt="Map Sketch" /></div>` : ''}
+          ${m.weatherImage ? `<div class="img-box"><h4>${t("Weather Forecast / Screenshot", lang)}</h4><img src="${m.weatherImage}" alt="Weather Screenshot" /></div>` : ''}
+          ${m.navCanFile ? `<div class="img-box"><h4>${t("NAV Canada Authorization File", lang)}</h4><img src="${m.navCanFile}" alt="Nav Canada Auth" /></div>` : ''}
         </div>
       </div>
     `;
@@ -425,33 +563,33 @@ const RISK_ITEMS = [
  */
 
 // -- SAVED LISTS MANAGER VIEW --
-const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
+const SavedListsView = ({ lists, onUpdateBulkLists, onBack, lang }) => {
   const [selectedList, setSelectedList] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [newValue, setNewValue] = useState('');
 
   const LIST_NAMES = {
-    locations: "Locations / Site Names",
-    pilots: "Pilots In Command",
-    additionalPilots: "Additional Pilots",
-    cameraOperators: "Camera Operators",
-    observers: "Observers",
-    rpas: "RPAS Models & Reg",
-    payload: "Payloads",
-    opCategories: "Operation Categories",
-    types: "Mission Types",
-    workElements: "Work Elements",
-    airspaces: "Airspace Classes",
-    airspaceTypes: "Airspace Types",
-    aerodromesInfo: "Aerodromes Info",
-    referenceGpsUnits: "Reference GPS Units",
-    approachAlts: "Approach Altitudes",
-    emergencySites: "Emergency Landing Sites",
-    descriptions: "Descriptions / Objectives",
-    preflightIssuesList: "Pre-Flight Issues / Incidents",
-    riskDescriptions: "Risk Descriptions",
-    riskMitigations: "Risk Mitigations"
+    locations: t("Locations / Site Names", lang),
+    pilots: t("Pilots In Command", lang),
+    additionalPilots: t("Additional Pilots", lang),
+    cameraOperators: t("Camera Operators", lang),
+    observers: t("Observers", lang),
+    rpas: t("RPAS Models & Reg", lang),
+    payload: t("Payloads", lang),
+    opCategories: t("Operation Categories", lang),
+    types: t("Mission Types", lang),
+    workElements: t("Work Elements", lang),
+    airspaces: t("Airspace Classes", lang),
+    airspaceTypes: t("Airspace Types", lang),
+    aerodromesInfo: t("Aerodromes Info", lang),
+    referenceGpsUnits: t("Reference GPS Units", lang),
+    approachAlts: t("Approach Altitudes", lang),
+    emergencySites: t("Emergency Landing Sites", lang),
+    descriptions: t("Descriptions / Objectives", lang),
+    preflightIssuesList: t("Pre-Flight Issues / Incidents", lang),
+    riskDescriptions: t("Risk Descriptions", lang),
+    riskMitigations: t("Risk Mitigations", lang)
   };
 
   if (selectedList === null) {
@@ -459,7 +597,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
        <div className="flex flex-col h-screen max-w-3xl mx-auto bg-slate-100">
          <div className="bg-emerald-900 text-white p-4 sticky top-0 z-10 flex items-center shadow-md gap-3">
            <button onClick={onBack} className="p-2 hover:bg-emerald-800 rounded-full transition-colors"><ArrowLeft className="h-6 w-6" /></button>
-           <h2 className="text-lg font-bold tracking-wide">SAVED LISTS MANAGER</h2>
+           <h2 className="text-lg font-bold tracking-wide">{t("SAVED LISTS MANAGER", lang)}</h2>
          </div>
          <div className="flex-1 overflow-y-auto p-4 pb-24 grid grid-cols-1 sm:grid-cols-2 gap-3">
            {Object.entries(LIST_NAMES).map(([key, label]) => (
@@ -482,7 +620,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
            <h2 className="text-lg font-bold tracking-wide uppercase truncate">{LIST_NAMES[selectedList]}</h2>
          </div>
          <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-3">
-            {currentItems.length === 0 && <p className="text-center text-slate-500 italic mt-10">This list is currently empty.</p>}
+            {currentItems.length === 0 && <p className="text-center text-slate-500 italic mt-10">{t("This list is currently empty.", lang)}</p>}
             {currentItems.map((item, idx) => (
                <div key={idx} className="bg-white p-3 rounded-md shadow-sm border border-slate-200 flex items-start justify-between gap-3">
                   {editingIndex === idx ? (
@@ -494,8 +632,8 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
                             newLists[selectedList][idx] = editValue;
                             onUpdateBulkLists(newLists);
                             setEditingIndex(null);
-                         }} className="bg-emerald-600 text-white px-3 py-2 rounded text-xs font-bold">SAVE</button>
-                         <button onClick={() => setEditingIndex(null)} className="bg-slate-200 text-slate-700 px-3 py-2 rounded text-xs font-bold">CANCEL</button>
+                         }} className="bg-emerald-600 text-white px-3 py-2 rounded text-xs font-bold">{t("SAVE", lang)}</button>
+                         <button onClick={() => setEditingIndex(null)} className="bg-slate-200 text-slate-700 px-3 py-2 rounded text-xs font-bold">{t("CANCEL", lang)}</button>
                        </div>
                      </div>
                   ) : (
@@ -504,7 +642,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
                        <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => { setEditingIndex(idx); setEditValue(item); }} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded"><Edit2 className="h-4 w-4" /></button>
                           <button onClick={() => {
-                             if(confirm('Delete this item?')) {
+                             if(confirm(t('Delete this item?', lang))) {
                                 const newLists = {...lists};
                                 newLists[selectedList].splice(idx, 1);
                                 onUpdateBulkLists(newLists);
@@ -518,7 +656,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
          </div>
          <div className="fixed bottom-0 left-0 right-0 bg-slate-200 border-t border-slate-300 z-20" style={{ padding: '1rem', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
             <div className="max-w-3xl mx-auto flex gap-2">
-               <textarea className="flex-1 border border-slate-300 p-3 rounded-md text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} placeholder="Add new item..." value={newValue} onChange={e => setNewValue(e.target.value)} />
+               <textarea className="flex-1 border border-slate-300 p-3 rounded-md text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white" rows={2} placeholder={t("Add new item...", lang)} value={newValue} onChange={e => setNewValue(e.target.value)} />
                <button onClick={() => {
                   if(newValue.trim()==='') return;
                   const newLists = {...lists};
@@ -534,7 +672,7 @@ const SavedListsView = ({ lists, onUpdateBulkLists, onBack }) => {
 };
 
 
-const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, multiple = false, className = "mb-4" }) => {
+const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, lang, multiple = false, className = "mb-4" }) => {
   const id = `list-${label.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
   const [inputValue, setInputValue] = useState('');
   
@@ -543,7 +681,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
         <div className={className}>
           <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
             {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
-            {label}
+            {t(label, lang)}
           </label>
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2 mb-2">
@@ -553,7 +691,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                    <button onClick={() => {
                       const newValue = value.filter(i => i !== v);
                       onChange(newValue);
-                   }} className="hover:text-red-600" title="Remove tag"><Trash2 className="h-3 w-3" /></button>
+                   }} className="hover:text-red-600" title={t("Remove tag", lang)}><Trash2 className="h-3 w-3" /></button>
                  </span>
                ))}
             </div>
@@ -561,7 +699,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                <input
                 list={id}
                 className="flex-1 min-w-0 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
-                placeholder="Type and press + to add..."
+                placeholder={t("Type and press + to add...", lang)}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -590,21 +728,22 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
                      setInputValue('');
                   }
                 }}
-                title="Add Entry"
+                title={t("Add Entry", lang)}
               >
                 <Plus className="h-5 w-5" />
               </button>
               {inputValue && options && options.includes(inputValue) && (
                 <button 
                   onClick={() => {
-                    if (confirm(`Remove "${inputValue}" from your saved options list?`)) {
+                    const confirmMsg = lang === 'fr' ? `Retirer "${inputValue}" de votre liste d'options enregistrées ?` : `Remove "${inputValue}" from your saved options list?`;
+                    if (confirm(confirmMsg)) {
                       onDelete(inputValue);
                       setInputValue('');
                     }
                   }}
                   className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300 shadow-sm"
                   type="button"
-                  title="Delete from saved options"
+                  title={t("Delete from saved options", lang)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -619,7 +758,7 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
     <div className={className}>
       <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
         {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
-        {label}
+        {t(label, lang)}
       </label>
       <div className="flex gap-2 relative">
         <input
@@ -627,17 +766,22 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
           className="flex-1 min-w-0 p-3 border border-slate-300 rounded-md bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Select or type..."
+          placeholder={t("Select or type...", lang)}
         />
         <datalist id={id}>
           {options && options.map(opt => <option key={opt} value={opt} />)}
         </datalist>
         {value && options && options.includes(value) && (
           <button 
-            onClick={() => onDelete(value)}
+            onClick={() => {
+               const confirmMsg = lang === 'fr' ? `Retirer "${value}" de votre liste d'options enregistrées ?` : `Remove "${value}" from your saved options list?`;
+               if (confirm(confirmMsg)) {
+                  onDelete(value);
+               }
+            }}
             className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
             type="button"
-            title="Delete from saved options"
+            title={t("Delete from saved options", lang)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -648,12 +792,12 @@ const DynamicSelect = ({ label, icon: Icon, value, options, onChange, onDelete, 
 };
 
 // --- COMPONENT FOR MULTILINE RETAINED TEXT ---
-const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete }) => {
+const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete, lang }) => {
   return (
     <div className="mb-4">
       <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2">
         {Icon && <Icon className="h-3 w-3 text-emerald-700" />}
-        {label}
+        {t(label, lang)}
       </label>
       <div className="space-y-2">
         {(options && options.length > 0) && (
@@ -667,15 +811,20 @@ const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete
                 }
               }}
             >
-              <option value="">Insert a previously saved entry...</option>
+              <option value="">{t("Insert a previously saved entry...", lang)}</option>
               {options.map(opt => <option key={opt} value={opt}>{opt.substring(0, 60)}{opt.length > 60 ? '...' : ''}</option>)}
             </select>
             {value && options.includes(value) && (
               <button 
-                onClick={() => onDelete(value)}
+                onClick={() => {
+                   const confirmMsg = lang === 'fr' ? `Retirer cette entrée exacte de votre liste d'options enregistrées ?` : `Delete this exact entry from saved list?`;
+                   if (confirm(confirmMsg)) {
+                      onDelete(value);
+                   }
+                }}
                 className="bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 px-3 rounded-md border border-slate-300"
                 type="button"
-                title="Delete this exact entry from saved list"
+                title={t("Delete this exact entry from saved list", lang)}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -687,14 +836,14 @@ const DynamicTextArea = ({ label, icon: Icon, value, options, onChange, onDelete
           rows={3}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Type here..."
+          placeholder={t("Type here...", lang)}
         />
       </div>
     </div>
   );
 };
 
-const SketchPad = ({ onSave, initialImage }) => {
+const SketchPad = ({ onSave, initialImage, lang }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#dc2626'); 
@@ -814,14 +963,14 @@ const SketchPad = ({ onSave, initialImage }) => {
         <div className="flex gap-2">
           <label className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 flex items-center gap-1">
             <ImageIcon className="h-3 w-3" />
-            LOAD MAP
+            {t("LOAD MAP", lang)}
             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
           </label>
           <button onClick={undo} type="button" className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 hover:text-blue-600 flex items-center gap-1">
-            <Undo2 className="h-3 w-3" /> UNDO
+            <Undo2 className="h-3 w-3" /> {t("UNDO", lang)}
           </button>
           <button onClick={clearCanvas} type="button" className="bg-white px-3 py-1 rounded border border-slate-300 text-xs font-bold text-slate-700 hover:text-red-600 flex items-center gap-1">
-            <Eraser className="h-3 w-3" /> CLEAR
+            <Eraser className="h-3 w-3" /> {t("CLEAR", lang)}
           </button>
         </div>
         <div className="flex gap-2 items-center">
@@ -845,7 +994,7 @@ const SketchPad = ({ onSave, initialImage }) => {
   );
 };
 
-const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists, initialData }) => {
+const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists, initialData, lang }) => {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState(initialData?.coords || { lat: '', lng: '' });
   const scrollRef = useRef(null); 
@@ -915,7 +1064,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
          });
          nearbyText = nearby.join('\n');
       } else {
-         nearbyText = "No aerodromes within 100km detected.";
+         nearbyText = t("No aerodromes within 100km detected.", lang);
       }
     }
     return nearbyText;
@@ -923,19 +1072,19 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
   
   const handleGPS = () => {
     if (coords.lat && coords.lng) {
-      if (!confirm("Are you sure you want to re-acquire GPS coordinates? This will overwrite the current coordinates.")) {
+      if (!confirm(t("Are you sure you want to re-acquire GPS coordinates? This will overwrite the current coordinates.", lang))) {
         return;
       }
     }
     getCoordinates((c) => {
       setCoords(c);
       update('aerodromesWithin100km', calculateAerodromes(c.lat, c.lng));
-    });
+    }, lang);
   };
 
   const handlePopulateAerodromes = () => {
     if (!coords.lat || !coords.lng) {
-      alert("Please acquire or manually enter GPS coordinates first.");
+      alert(t("Please acquire or manually enter GPS coordinates first.", lang));
       return;
     }
     update('aerodromesWithin100km', calculateAerodromes(coords.lat, coords.lng));
@@ -957,7 +1106,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
 
   const saveMission = () => {
     if (!formData.location || !formData.pilot) {
-      alert("Please enter at least a Location and Pilot In Command.");
+      alert(t("Please enter at least a Location and Pilot In Command.", lang));
       return;
     }
 
@@ -967,7 +1116,10 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
       const [riskName, riskData] = riskEntries[i];
       if (riskData.checked && (riskData.level === 'Medium' || riskData.level === 'High')) {
         if (!riskData.mitigation || riskData.mitigation.trim() === '') {
-          alert(`A Mitigation strategy is mandatory for ${riskData.level} risk item: ${riskName}`);
+          const msg = lang === 'fr' 
+            ? `Une stratégie d'atténuation est obligatoire pour l'élément à risque ${t(riskData.level, lang)} : ${t(riskName, lang)}` 
+            : `A Mitigation strategy is mandatory for ${riskData.level} risk item: ${riskName}`;
+          alert(msg);
           return;
         }
       }
@@ -975,7 +1127,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
 
     // Pre-flight check
     if (!formData.preflightCompleted) {
-      alert("You must complete and check off the pre-flight checklist before saving the mission.");
+      alert(t("You must complete and check off the pre-flight checklist before saving the mission.", lang));
       const preflightEl = document.getElementById('preflight-section');
       if (preflightEl) {
         preflightEl.scrollIntoView({ behavior: 'smooth' });
@@ -1043,8 +1195,10 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
     onChange: (val) => update(formKey, val),
     multiple,
     className: customClass,
+    lang,
     onDelete: (val) => {
-       if (confirm(`Remove "${val}" from your saved options list?`)) {
+       const confirmMsg = lang === 'fr' ? `Retirer "${val}" de votre liste d'options enregistrées ?` : `Remove "${val}" from your saved options list?`;
+       if (confirm(confirmMsg)) {
          onUpdateList(listKey, val, 'del');
          if (!multiple && formData[formKey] === val) update(formKey, '');
        }
@@ -1059,11 +1213,11 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             <ArrowLeft className="h-6 w-6" />
           </button>
           <h2 className="text-lg font-bold tracking-wide">
-            {initialData ? 'EDIT MISSION' : 'NEW MISSION'}
+            {initialData ? t('EDIT MISSION', lang) : t('NEW MISSION', lang)}
           </h2>
         </div>
         <div className="text-xs font-mono bg-emerald-800 px-2 py-1 rounded">
-          STEP {step}/3
+          {t('STEP', lang)} {step}/3
         </div>
       </div>
 
@@ -1073,31 +1227,31 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <MapPin className="h-5 w-5 text-emerald-700" />
-                TIME & LOCATION
+                {t('TIME & LOCATION', lang)}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="w-full overflow-hidden">
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Start (24h)</label>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Start (24h)', lang)}</label>
                   <input type="datetime-local" className="w-full p-2 text-sm border border-slate-300 rounded bg-slate-50" style={{ maxWidth: '100%', boxSizing: 'border-box' }} value={formData.start} onChange={e => update('start', e.target.value)} />
                 </div>
                 <div className="w-full overflow-hidden">
-                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1">End (24h)</label>
+                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('End (24h)', lang)}</label>
                   <input type="datetime-local" className="w-full p-2 text-sm border border-slate-300 rounded bg-slate-50" style={{ maxWidth: '100%', boxSizing: 'border-box' }} value={formData.end} onChange={e => update('end', e.target.value)} />
                 </div>
               </div>
               <DynamicSelect label="Location / Site Name" icon={null} {...getListProps('location', 'locations')} />
               <div className="bg-slate-50 p-3 rounded border border-slate-200">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase">GPS Coordinates</span>
-                  <button onClick={handleGPS} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">ACQUIRE GPS</button>
+                  <span className="text-xs font-bold text-slate-500 uppercase">{t('GPS Coordinates', lang)}</span>
+                  <button onClick={handleGPS} className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">{t('ACQUIRE GPS', lang)}</button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('Latitude', lang)}</label>
                     <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={coords.lat || ''} onChange={(e) => handleCoordChange('lat', e.target.value)} placeholder="0.000000" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('Longitude', lang)}</label>
                     <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={coords.lng || ''} onChange={(e) => handleCoordChange('lng', e.target.value)} placeholder="0.000000" />
                   </div>
                 </div>
@@ -1105,15 +1259,15 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
               
               <div className="bg-slate-50 p-3 rounded border border-slate-200 mt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase">SECONDARY GPS COORDINATES (REFERENCE)</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase">{t('SECONDARY GPS COORDINATES (REFERENCE)', lang)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('Latitude', lang)}</label>
                     <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLat || ''} onChange={(e) => update('secondaryLat', e.target.value)} placeholder="0.000000" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('Longitude', lang)}</label>
                     <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm font-mono bg-white" value={formData.secondaryLng || ''} onChange={(e) => update('secondaryLng', e.target.value)} placeholder="0.000000" />
                   </div>
                 </div>
@@ -1124,7 +1278,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
                 <Users className="h-5 w-5 text-emerald-700" />
-                OPERATIONAL RESOURCES
+                {t('OPERATIONAL RESOURCES', lang)}
               </h3>
               <DynamicSelect label="Pilot In Command" icon={Users} {...getListProps('pilot', 'pilots')} />
               <DynamicSelect label="Additional Pilots" icon={Users} {...getListProps('additionalPilots', 'additionalPilots', true)} />
@@ -1140,29 +1294,29 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
               
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-bold text-slate-600 uppercase flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-700" /> Aerodromes within 100km</label>
-                  <button onClick={handlePopulateAerodromes} type="button" className="text-[10px] bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">POPULATE</button>
+                  <label className="block text-xs font-bold text-slate-600 uppercase flex items-center gap-2"><MapPin className="h-3 w-3 text-emerald-700" /> {t('Aerodromes within 100km', lang)}</label>
+                  <button onClick={handlePopulateAerodromes} type="button" className="text-[10px] bg-emerald-100 text-emerald-800 px-3 py-1 rounded font-bold hover:bg-emerald-200 transition-colors shadow-sm">{t('POPULATE', lang)}</button>
                 </div>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md h-32 text-xs font-mono bg-slate-50" value={formData.aerodromesWithin100km || ''} onChange={(e) => update('aerodromesWithin100km', e.target.value)} placeholder="Will auto-populate when GPS is acquired or populate is pressed..." />
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-32 text-xs font-mono bg-slate-50" value={formData.aerodromesWithin100km || ''} onChange={(e) => update('aerodromesWithin100km', e.target.value)} placeholder={t("Will auto-populate when GPS is acquired or populate is pressed...", lang)} />
               </div>
                <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Applicable NOTAMS</label>
-                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.notams} onChange={(e) => update('notams', e.target.value)} placeholder="Enter applicable NOTAMs..." />
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Applicable NOTAMS', lang)}</label>
+                <textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.notams} onChange={(e) => update('notams', e.target.value)} placeholder={t("Enter applicable NOTAMs...", lang)} />
               </div>
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileText className="h-3 w-3 text-emerald-700" /> Nav Canada Ref No.</label>
-                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.navCanRef} onChange={(e) => update('navCanRef', e.target.value)} placeholder="Enter Ref No." />
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileText className="h-3 w-3 text-emerald-700" /> {t('Nav Canada Ref No.', lang)}</label>
+                <input type="text" className="w-full p-3 border border-slate-300 rounded-md" value={formData.navCanRef} onChange={(e) => update('navCanRef', e.target.value)} placeholder={t("Enter Ref No.", lang)} />
               </div>
               <div className="mb-4">
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileCheck className="h-3 w-3 text-emerald-700" /> NAV Canada File Upload</label>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><FileCheck className="h-3 w-3 text-emerald-700" /> {t('NAV Canada File Upload', lang)}</label>
                  {formData.navCanFile ? (
                     <div className="relative group p-3 bg-emerald-50 border border-emerald-200 rounded-md text-sm text-emerald-800 flex items-center gap-2">
-                       <FileCheck className="h-4 w-4" /> File Attached
+                       <FileCheck className="h-4 w-4" /> {t('File Attached', lang)}
                        <button onClick={() => update('navCanFile', null)} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-md"><Trash2 className="h-3 w-3" /></button>
                     </div>
                  ) : (
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50">
-                        <Upload className="h-4 w-4 text-slate-400" /><span className="text-[10px] text-slate-500">Upload File / Image</span>
+                        <Upload className="h-4 w-4 text-slate-400" /><span className="text-[10px] text-slate-500">{t('Upload File / Image', lang)}</span>
                         <input type="file" className="hidden" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=(ev)=>update('navCanFile', ev.target.result); r.readAsDataURL(f); }}} />
                     </label>
                  )}
@@ -1170,34 +1324,34 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             </div>
 
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-3">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Cloud className="h-5 w-5 text-emerald-700" /> WEATHER CONDITIONS</h3>
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Cloud className="h-5 w-5 text-emerald-700" /> {t('WEATHER CONDITIONS', lang)}</h3>
                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Temp (°C)</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.temperature} onChange={(e) => update('temperature', e.target.value)} /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Wind (km/h)</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.windSpeed} onChange={(e) => update('windSpeed', e.target.value)} /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Temp (°C)', lang)}</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.temperature} onChange={(e) => update('temperature', e.target.value)} /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Wind (km/h)', lang)}</label><input type="number" className="w-full p-3 border border-slate-300 rounded-md" value={formData.windSpeed} onChange={(e) => update('windSpeed', e.target.value)} /></div>
                </div>
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Wind Direction</label>
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Wind Direction', lang)}</label>
                     <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.windDir} onChange={(e) => update('windDir', e.target.value)}>
-                      <option value="">Select...</option>
-                      {['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}
+                      <option value="">{t('Select...', lang)}</option>
+                      {['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{t(d, lang)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Visibility (km)</label>
+                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Visibility (km)', lang)}</label>
                     <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.visibility} onChange={(e) => update('visibility', e.target.value)}>
-                       <option value="">Select...</option>
-                       {['Excellent (above 10 km)', 'Good (5-10 km)', 'Fair (2-5 km)', 'Poor (1-2 km)'].map(v => <option key={v} value={v}>{v}</option>)}
+                       <option value="">{t('Select...', lang)}</option>
+                       {['Excellent (above 10 km)', 'Good (5-10 km)', 'Fair (2-5 km)', 'Poor (1-2 km)'].map(v => <option key={v} value={v}>{t(v, lang)}</option>)}
                     </select>
                   </div>
                </div>
-               <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">Weather Notes</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.weatherText} onChange={e => update('weatherText', e.target.value)} /></div>
+               <div><label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Weather Notes', lang)}</label><textarea className="w-full p-3 border border-slate-300 rounded-md h-20" value={formData.weatherText} onChange={e => update('weatherText', e.target.value)} /></div>
                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Attach Forecast / Screenshot</label>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Attach Forecast / Screenshot', lang)}</label>
                   {formData.weatherImage ? (
                     <div className="relative group"><img src={formData.weatherImage} alt="Weather" className="w-full h-48 object-contain rounded-md border border-slate-200 bg-slate-50" /><button onClick={() => update('weatherImage', null)} className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full shadow-md"><Trash2 className="h-4 w-4" /></button></div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50"><Upload className="h-6 w-6 text-slate-400 mb-1" /><span className="text-xs text-slate-500">Click to upload screenshot</span><input type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=(ev)=>update('weatherImage', ev.target.result); r.readAsDataURL(f); }}} /></label>
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer hover:bg-slate-50"><Upload className="h-6 w-6 text-slate-400 mb-1" /><span className="text-xs text-slate-500">{t('Click to upload screenshot', lang)}</span><input type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onload=(ev)=>update('weatherImage', ev.target.result); r.readAsDataURL(f); }}} /></label>
                   )}
                </div>
             </div>
@@ -1205,10 +1359,10 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                  <FileText className="h-5 w-5 text-emerald-700" />
-                 AFTER MISSION REPORT
+                 {t('AFTER MISSION REPORT', lang)}
                </h3>
-               <DynamicTextArea label="Outcomes/Summary" value={formData.outcomesSummary || ''} options={lists.descriptions} onChange={(val) => update('outcomesSummary', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} />
-               <DynamicTextArea label="Incidents/Maintenance" value={formData.incidentsMaintenance || ''} options={lists.preflightIssuesList} onChange={(val) => update('incidentsMaintenance', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} />
+               <DynamicTextArea label="Outcomes/Summary" value={formData.outcomesSummary || ''} options={lists.descriptions} onChange={(val) => update('outcomesSummary', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} lang={lang} />
+               <DynamicTextArea label="Incidents/Maintenance" value={formData.incidentsMaintenance || ''} options={lists.preflightIssuesList} onChange={(val) => update('incidentsMaintenance', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} lang={lang} />
             </div>
           </div>
         )}
@@ -1216,38 +1370,38 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
         {step === 2 && (
           <div className="space-y-6">
             <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm space-y-4">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Crosshair className="h-5 w-5 text-emerald-700" /> MISSION</h3>
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2"><Crosshair className="h-5 w-5 text-emerald-700" /> {t('MISSION', lang)}</h3>
                <DynamicSelect label="Mission Type" icon={FileText} {...getListProps('type', 'types')} />
                <DynamicSelect label="Work Elements" icon={FileText} {...getListProps('workElements', 'workElements', true)} />
                <div className="mb-4">
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> No. of Flights</label>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Plus className="h-3 w-3 text-emerald-700" /> {t('No. of Flights', lang)}</label>
                  <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.flightCount} onChange={(e) => update('flightCount', parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}</select>
                </div>
                
                <div className="mb-4">
-                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-emerald-700" /> Distance to Operational Area (km)</label>
+                 <label className="block text-xs font-bold text-slate-600 uppercase mb-1 flex items-center gap-2"><Navigation className="h-3 w-3 text-emerald-700" /> {t('Distance to Operational Area (km)', lang)}</label>
                  <input type="text" className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.distance} onChange={(e) => update('distance', e.target.value)} placeholder="e.g. 1.2" />
                </div>
 
                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
-                 <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">Approach and Departure</h4>
+                 <h4 className="font-bold text-slate-700 text-xs uppercase mb-3">{t('Approach and Departure', lang)}</h4>
                  <div className="flex flex-col sm:flex-row gap-4">
                     <div className="w-full sm:w-28 shrink-0">
                       <DynamicSelect label="Alt (m)" icon={null} customClass="" {...getListProps('approachAlt', 'approachAlts')} />
                     </div>
                     <div className="flex-1 min-w-0 mb-4 sm:mb-0">
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Route</label>
-                      <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">Select...</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{d}</option>)}</select>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">{t('Route', lang)}</label>
+                      <select className="w-full p-3 border border-slate-300 rounded-md bg-white" value={formData.approachRoute} onChange={(e) => update('approachRoute', e.target.value)}><option value="">{t('Select...', lang)}</option>{['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'].map(d => <option key={d} value={d}>{t(d, lang)}</option>)}</select>
                     </div>
                  </div>
                </div>
                
                <DynamicSelect label="Emergency Landing Site" icon={null} {...getListProps('emergencySite', 'emergencySites')} />
-               <DynamicTextArea label="Description / Objectives" value={formData.description || ''} options={lists.descriptions} onChange={(val) => update('description', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} />
+               <DynamicTextArea label="Description / Objectives" value={formData.description || ''} options={lists.descriptions} onChange={(val) => update('description', val)} onDelete={(val) => onUpdateList('descriptions', val, 'del')} lang={lang} />
                
                <div className="space-y-3">
-                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase"><PenTool className="h-4 w-4 text-emerald-700" /> MISSION AREA SKETCH</h3>
-                 <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} />
+                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase"><PenTool className="h-4 w-4 text-emerald-700" /> {t('MISSION AREA SKETCH', lang)}</h3>
+                 <SketchPad initialImage={formData.sketch} onSave={(data) => update('sketch', data)} lang={lang} />
                </div>
             </div>
           </div>
@@ -1256,7 +1410,7 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
         {step === 3 && (
           <div className="space-y-4">
             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-md text-emerald-900 text-sm mb-4">
-              <strong>Assessment Required:</strong> Select all hazards present. Mitigation strategies are mandatory for Medium and High risk items.
+              <strong>{t('Assessment Required:', lang)}</strong> {t('Select all hazards present. Mitigation strategies are mandatory for Medium and High risk items.', lang)}
             </div>
             {RISK_ITEMS.map((item) => {
               const riskData = formData.risks[item] || { checked: false };
@@ -1264,14 +1418,14 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
                 <div key={item} className={`bg-white rounded-md border shadow-sm overflow-hidden transition-all ${riskData.checked ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200'}`}>
                   <label className="flex items-center p-4 cursor-pointer hover:bg-slate-50">
                     <input type="checkbox" className="w-5 h-5 accent-emerald-700 rounded mr-3" checked={riskData.checked} onChange={(e) => handleRiskChange(item, 'checked', e.target.checked)} />
-                    <span className={`flex-1 font-medium ${riskData.checked ? 'text-slate-900' : 'text-slate-600'}`}>{item}</span>
-                    {riskData.checked && <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${riskData.level === 'High' ? 'bg-red-100 text-red-700' : riskData.level === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>{riskData.level || 'NO LEVEL'}</span>}
+                    <span className={`flex-1 font-medium ${riskData.checked ? 'text-slate-900' : 'text-slate-600'}`}>{t(item, lang)}</span>
+                    {riskData.checked && <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${riskData.level === 'High' ? 'bg-red-100 text-red-700' : riskData.level === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>{t(riskData.level || 'NO LEVEL', lang)}</span>}
                   </label>
                   {riskData.checked && (
                     <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Risk Level</label><select className="w-full p-2 border border-slate-300 rounded bg-white text-sm" value={riskData.level || ''} onChange={(e) => handleRiskChange(item, 'level', e.target.value)}><option value="">Select...</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select></div>
-                      <DynamicTextArea label="Description" value={riskData.desc || ''} options={lists.riskDescriptions} onChange={(val) => handleRiskChange(item, 'desc', val)} onDelete={(val) => onUpdateList('riskDescriptions', val, 'del')} />
-                      <DynamicTextArea label="Mitigation" value={riskData.mitigation || ''} options={lists.riskMitigations} onChange={(val) => handleRiskChange(item, 'mitigation', val)} onDelete={(val) => onUpdateList('riskMitigations', val, 'del')} />
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('Risk Level', lang)}</label><select className="w-full p-2 border border-slate-300 rounded bg-white text-sm" value={riskData.level || ''} onChange={(e) => handleRiskChange(item, 'level', e.target.value)}><option value="">{t('Select...', lang)}</option><option value="Low">{t('Low', lang)}</option><option value="Medium">{t('Medium', lang)}</option><option value="High">{t('High', lang)}</option></select></div>
+                      <DynamicTextArea label="Description" value={riskData.desc || ''} options={lists.riskDescriptions} onChange={(val) => handleRiskChange(item, 'desc', val)} onDelete={(val) => onUpdateList('riskDescriptions', val, 'del')} lang={lang} />
+                      <DynamicTextArea label="Mitigation" value={riskData.mitigation || ''} options={lists.riskMitigations} onChange={(val) => handleRiskChange(item, 'mitigation', val)} onDelete={(val) => onUpdateList('riskMitigations', val, 'del')} lang={lang} />
                     </div>
                   )}
                 </div>
@@ -1281,16 +1435,16 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
             <div id="preflight-section" className="bg-white p-5 rounded-md border border-slate-200 shadow-sm mt-6">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
                 <FileCheck className="h-5 w-5 text-emerald-700" />
-                PRE-FLIGHT CHECKLIST
+                {t('PRE-FLIGHT CHECKLIST', lang)}
               </h3>
               <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">COMPLETED CHECKLIST</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">{t('COMPLETED CHECKLIST', lang)}</label>
                 <label className="flex items-center cursor-pointer bg-slate-50 p-3 rounded border border-slate-200 hover:bg-slate-100 transition-colors">
                   <input type="checkbox" className="w-5 h-5 accent-emerald-700 rounded mr-3" checked={formData.preflightCompleted || false} onChange={(e) => update('preflightCompleted', e.target.checked)} />
-                  <span className="text-sm font-medium text-slate-700">I have completed the pre-flight checklist</span>
+                  <span className="text-sm font-medium text-slate-700">{t('I have completed the pre-flight checklist', lang)}</span>
                 </label>
               </div>
-              <DynamicTextArea label="Issues / Concerns" value={formData.preflightIssues || ''} options={lists.preflightIssuesList} onChange={(val) => update('preflightIssues', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} />
+              <DynamicTextArea label="Issues / Concerns" value={formData.preflightIssues || ''} options={lists.preflightIssuesList} onChange={(val) => update('preflightIssues', val)} onDelete={(val) => onUpdateList('preflightIssuesList', val, 'del')} lang={lang} />
             </div>
           </div>
         )}
@@ -1298,8 +1452,8 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 shadow-lg" style={{ padding: '1rem', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <div className="max-w-3xl mx-auto flex gap-4">
-          {step > 1 && <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md uppercase tracking-wide text-sm">Back</button>}
-          {step < 3 ? <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-md shadow-md uppercase tracking-wide text-sm">Next</button> : <button onClick={saveMission} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-md flex justify-center items-center gap-2 uppercase tracking-wide text-sm"><Save className="h-5 w-5" /> Save Mission</button>}
+          {step > 1 && <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-md uppercase tracking-wide text-sm">{t('Back', lang)}</button>}
+          {step < 3 ? <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-md shadow-md uppercase tracking-wide text-sm">{t('Next', lang)}</button> : <button onClick={saveMission} className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-md shadow-md flex justify-center items-center gap-2 uppercase tracking-wide text-sm"><Save className="h-5 w-5" /> {t('Save Mission', lang)}</button>}
         </div>
       </div>
     </div>
@@ -1307,103 +1461,103 @@ const MissionForm = ({ onSave, onCancel, lists, onUpdateList, onUpdateBulkLists,
 };
 
 // --- PRINT VIEW COMPONENT ---
-const PrintMissionView = ({ mission, onBack }) => {
+const PrintMissionView = ({ mission, onBack, lang }) => {
   if (!mission) return null;
 
   return (
     <div className="min-h-screen bg-white text-black font-sans pb-20">
       <div className="print:hidden bg-emerald-900 text-white p-4 flex justify-between items-center shadow-md">
         <button onClick={onBack} className="flex items-center gap-2 font-bold hover:text-emerald-200 transition-colors">
-          <ArrowLeft className="h-5 w-5" /> Back
+          <ArrowLeft className="h-5 w-5" /> {t('Back', lang)}
         </button>
         <button onClick={() => window.print()} className="bg-white text-emerald-900 px-4 py-2 rounded font-bold flex items-center gap-2 hover:bg-emerald-50 transition-colors shadow-sm">
-          <Printer className="h-5 w-5" /> Print Report
+          <Printer className="h-5 w-5" /> {t('Print Report', lang)}
         </button>
       </div>
 
       <div className="max-w-4xl mx-auto p-8">
         <div className="border-b-2 border-slate-800 pb-4 mb-6">
-          <h1 className="text-2xl font-bold uppercase tracking-wider">DFO RPAS Flight Log - Mission Report</h1>
-          <p className="text-sm text-slate-600 mt-1">Mission ID: {mission.id}</p>
+          <h1 className="text-2xl font-bold uppercase tracking-wider">{t('DFO RPAS Flight Log - Mission Report', lang)}</h1>
+          <p className="text-sm text-slate-600 mt-1">{t('Mission ID', lang)}: {mission.id}</p>
           <div className="text-[10px] text-slate-500 mt-2 space-y-0.5">
-            <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
-            <p>Regional RPAS program coordinator: Philip Bouma</p>
-            <p>Chief of Enforcement Operations: Ulysse Brideau</p>
+            <p>{t('Compliant with CARs Part IX - TC and DFO Policy Draft', lang)}</p>
+            <p>{t('Regional RPAS program coordinator: Philip Bouma', lang)}</p>
+            <p>{t('Chief of Enforcement Operations: Ulysse Brideau', lang)}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Location & Time</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Location & Time', lang)}</h3>
             <p className="text-sm mb-1"><strong>Site:</strong> {mission.location}</p>
-            <p className="text-sm mb-1"><strong>Start:</strong> {formatDateTime24h(mission.start)}</p>
-            <p className="text-sm mb-1"><strong>End:</strong> {formatDateTime24h(mission.end)}</p>
-            <p className="text-sm mb-1"><strong>Primary GPS:</strong> {mission.coords?.lat || 'N/A'}, {mission.coords?.lng || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>{t('Start:', lang)}</strong> {formatDateTime24h(mission.start)}</p>
+            <p className="text-sm mb-1"><strong>{t('End:', lang)}</strong> {formatDateTime24h(mission.end)}</p>
+            <p className="text-sm mb-1"><strong>{t('Primary GPS', lang)}:</strong> {mission.coords?.lat || t('N/A', lang)}, {mission.coords?.lng || t('N/A', lang)}</p>
             {(mission.secondaryLat || mission.secondaryLng) && (
-              <p className="text-sm mb-1"><strong>Ref GPS:</strong> {mission.secondaryLat}, {mission.secondaryLng} ({mission.referenceGpsUnit})</p>
+              <p className="text-sm mb-1"><strong>{t('Ref GPS', lang)}:</strong> {mission.secondaryLat}, {mission.secondaryLng} ({mission.referenceGpsUnit})</p>
             )}
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Operational Resources</h3>
-            <p className="text-sm mb-1"><strong>Pilot In Command:</strong> {mission.pilot}</p>
-            <p className="text-sm mb-1"><strong>Additional Pilots:</strong> {Array.isArray(mission.additionalPilots) ? mission.additionalPilots.join(', ') : 'None'}</p>
-            <p className="text-sm mb-1"><strong>Camera Operators:</strong> {Array.isArray(mission.cameraOperators) ? mission.cameraOperators.join(', ') : 'None'}</p>
-            <p className="text-sm mb-1"><strong>Observers:</strong> {Array.isArray(mission.observers) ? mission.observers.join(', ') : (mission.observer || 'None')}</p>
-            <p className="text-sm mb-1 mt-2"><strong>RPAS:</strong> {Array.isArray(mission.rpas) ? mission.rpas.join(', ') : (mission.rpas || 'N/A')}</p>
-            <p className="text-sm mb-1"><strong>Op Category:</strong> {mission.opCategory || 'N/A'}</p>
-            <p className="text-sm mb-1"><strong>Payload:</strong> {Array.isArray(mission.payload) ? mission.payload.join(', ') : (mission.payload || 'N/A')}</p>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Operational Resources', lang)}</h3>
+            <p className="text-sm mb-1"><strong>{t('Pilot In Command', lang)}:</strong> {mission.pilot}</p>
+            <p className="text-sm mb-1"><strong>{t('Additional Pilots', lang)}:</strong> {Array.isArray(mission.additionalPilots) ? mission.additionalPilots.join(', ') : t('None', lang)}</p>
+            <p className="text-sm mb-1"><strong>{t('Camera Operators', lang)}:</strong> {Array.isArray(mission.cameraOperators) ? mission.cameraOperators.join(', ') : t('None', lang)}</p>
+            <p className="text-sm mb-1"><strong>{t('Observers', lang)}:</strong> {Array.isArray(mission.observers) ? mission.observers.join(', ') : (mission.observer || t('None', lang))}</p>
+            <p className="text-sm mb-1 mt-2"><strong>RPAS:</strong> {Array.isArray(mission.rpas) ? mission.rpas.join(', ') : (mission.rpas || t('N/A', lang))}</p>
+            <p className="text-sm mb-1"><strong>{t('Op Category', lang)}:</strong> {mission.opCategory || t('N/A', lang)}</p>
+            <p className="text-sm mb-1"><strong>{t('Payload', lang)}:</strong> {Array.isArray(mission.payload) ? mission.payload.join(', ') : (mission.payload || t('N/A', lang))}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Details</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Mission Details', lang)}</h3>
             <p className="text-sm mb-1"><strong>Type:</strong> {mission.type}</p>
-            <p className="text-sm mb-1"><strong>Work Elements:</strong> {Array.isArray(mission.workElements) ? mission.workElements.join(', ') : (mission.workElement || 'N/A')}</p>
-            <p className="text-sm mb-1"><strong>Flights:</strong> {mission.flightCount || 1}</p>
-            <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || 'N/A'} km</p>
-            <p className="text-sm mb-1"><strong>Airspace:</strong> {mission.airspace} ({mission.airspaceType})</p>
-            <p className="text-sm mb-1"><strong>Aerodromes within 100km:</strong><br/><span style={{whiteSpace: 'pre-wrap'}}>{mission.aerodromesWithin100km ? mission.aerodromesWithin100km : (Array.isArray(mission.aerodromes) ? mission.aerodromes.join(', ') : (mission.aerodromes || 'None'))}</span></p>
-            <p className="text-sm mb-1 mt-2"><strong>NOTAMS:</strong> {mission.notams || 'None'}</p>
-            <p className="text-sm mb-1"><strong>NavCan Ref:</strong> {mission.navCanRef || 'N/A'}</p>
-            <p className="text-sm mb-1 mt-2"><strong>Approach Alt:</strong> {mission.approachAlt || 'N/A'}, <strong>Route:</strong> {mission.approachRoute || 'N/A'}</p>
-            <p className="text-sm mb-1"><strong>Emergency Site:</strong> {mission.emergencySite || 'N/A'}</p>
-            <p className="text-sm mb-1 mt-2"><strong>Objectives:</strong> {mission.description || 'N/A'}</p>
+            <p className="text-sm mb-1"><strong>{t('Work Elements', lang)}:</strong> {Array.isArray(mission.workElements) ? mission.workElements.join(', ') : (mission.workElement || t('N/A', lang))}</p>
+            <p className="text-sm mb-1"><strong>{t('Flights', lang)}:</strong> {mission.flightCount || 1}</p>
+            <p className="text-sm mb-1"><strong>Distance:</strong> {mission.distance || t('N/A', lang)} km</p>
+            <p className="text-sm mb-1"><strong>{t('Airspace', lang)}:</strong> {mission.airspace} ({mission.airspaceType})</p>
+            <p className="text-sm mb-1"><strong>{t('Aerodromes within 100km', lang)}:</strong><br/><span style={{whiteSpace: 'pre-wrap'}}>{mission.aerodromesWithin100km ? mission.aerodromesWithin100km : (Array.isArray(mission.aerodromesInfo) ? mission.aerodromesInfo.join(', ') : (mission.aerodromesInfo || t('None', lang)))}</span></p>
+            <p className="text-sm mb-1 mt-2"><strong>NOTAMS:</strong> {mission.notams || t('None', lang)}</p>
+            <p className="text-sm mb-1"><strong>NavCan Ref:</strong> {mission.navCanRef || t('N/A', lang)}</p>
+            <p className="text-sm mb-1 mt-2"><strong>{t('Approach Alt', lang)}:</strong> {mission.approachAlt || t('N/A', lang)}, <strong>Route:</strong> {mission.approachRoute ? t(mission.approachRoute, lang) : t('N/A', lang)}</p>
+            <p className="text-sm mb-1"><strong>{t('Emergency Landing Site', lang)}:</strong> {mission.emergencySite || t('N/A', lang)}</p>
+            <p className="text-sm mb-1 mt-2"><strong>{t('Description / Objectives', lang)}:</strong> {mission.description || t('N/A', lang)}</p>
           </div>
           <div>
-             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Weather Conditions</h3>
-             <p className="text-sm mb-1"><strong>Temp:</strong> {mission.temperature ? `${mission.temperature}°C` : 'N/A'}</p>
-             <p className="text-sm mb-1"><strong>Wind:</strong> {mission.windSpeed ? `${mission.windSpeed} km/h ${mission.windDir}` : 'N/A'}</p>
-             <p className="text-sm mb-1"><strong>Visibility:</strong> {mission.visibility || 'N/A'}</p>
-             <p className="text-sm mb-1 mt-2"><strong>Notes:</strong> {mission.weatherText || 'None'}</p>
+             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('WEATHER CONDITIONS', lang)}</h3>
+             <p className="text-sm mb-1"><strong>Temp:</strong> {mission.temperature ? `${mission.temperature}°C` : t('N/A', lang)}</p>
+             <p className="text-sm mb-1"><strong>Wind:</strong> {mission.windSpeed ? `${mission.windSpeed} km/h ${mission.windDir ? t(mission.windDir, lang) : ''}` : t('N/A', lang)}</p>
+             <p className="text-sm mb-1"><strong>{t('Visibility (km)', lang)}:</strong> {mission.visibility ? t(mission.visibility, lang) : t('N/A', lang)}</p>
+             <p className="text-sm mb-1 mt-2"><strong>{t('Weather Notes', lang)}:</strong> {mission.weatherText || t('None', lang)}</p>
              
-             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2 mt-4">Post-Flight</h3>
-             <p className="text-sm mb-1"><strong>Preflight Checked:</strong> {mission.preflightCompleted ? 'Yes' : 'No'}</p>
-             <p className="text-sm mb-1"><strong>Issues:</strong> {mission.preflightIssues || 'None'}</p>
-             <p className="text-sm mb-1"><strong>Outcomes:</strong> {mission.outcomesSummary || 'None'}</p>
-             <p className="text-sm mb-1"><strong>Maintenance:</strong> {mission.incidentsMaintenance || 'None'}</p>
+             <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2 mt-4">{t('AFTER MISSION REPORT', lang)}</h3>
+             <p className="text-sm mb-1"><strong>{t('Preflight Checked', lang)}:</strong> {mission.preflightCompleted ? t('Yes', lang) : t('No', lang)}</p>
+             <p className="text-sm mb-1"><strong>{t('Issues', lang)}:</strong> {mission.preflightIssues || t('None', lang)}</p>
+             <p className="text-sm mb-1"><strong>{t('Outcomes', lang)}:</strong> {mission.outcomesSummary || t('None', lang)}</p>
+             <p className="text-sm mb-1"><strong>{t('Maintenance', lang)}:</strong> {mission.incidentsMaintenance || t('None', lang)}</p>
           </div>
         </div>
 
         <div className="mb-6">
-          <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Risk Assessment</h3>
+          <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Risk Assessment', lang)}</h3>
           {(!mission.risks || Object.keys(mission.risks).filter(k => mission.risks[k].checked).length === 0) ? (
-            <p className="text-sm italic text-slate-500">No risks flagged.</p>
+            <p className="text-sm italic text-slate-500">{t('No risks flagged.', lang)}</p>
           ) : (
             <table className="w-full text-sm border-collapse border border-slate-300">
               <thead>
                 <tr className="bg-slate-100">
-                  <th className="border border-slate-300 p-2 text-left">Risk Factor</th>
-                  <th className="border border-slate-300 p-2 text-left w-24">Level</th>
-                  <th className="border border-slate-300 p-2 text-left">Mitigation Strategy</th>
+                  <th className="border border-slate-300 p-2 text-left">{t('Risk Factor', lang)}</th>
+                  <th className="border border-slate-300 p-2 text-left w-24">{t('Risk Level', lang)}</th>
+                  <th className="border border-slate-300 p-2 text-left">{t('Mitigation Strategy', lang)}</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(mission.risks).filter(([_, v]) => v.checked).map(([k, v]) => (
                   <tr key={k}>
-                    <td className="border border-slate-300 p-2 font-medium">{k}</td>
-                    <td className="border border-slate-300 p-2">{v.level || '-'}</td>
-                    <td className="border border-slate-300 p-2">{v.mitigation || 'None specified'}</td>
+                    <td className="border border-slate-300 p-2 font-medium">{t(k, lang)}</td>
+                    <td className="border border-slate-300 p-2">{t(v.level || '-', lang)}</td>
+                    <td className="border border-slate-300 p-2">{v.mitigation || t('None specified', lang)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1414,19 +1568,19 @@ const PrintMissionView = ({ mission, onBack }) => {
         <div className="mt-8 flex flex-col gap-6">
           {mission.sketch && (
             <div className="page-break-inside-avoid">
-              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Mission Area Map</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Mission Area Map', lang)}</h3>
               <img src={mission.sketch} alt="Mission Map" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
             </div>
           )}
           {mission.weatherImage && (
             <div className="page-break-inside-avoid">
-              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">Weather Forecast / Screenshot</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('Weather Forecast / Screenshot', lang)}</h3>
               <img src={mission.weatherImage} alt="Weather Screenshot" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
             </div>
           )}
           {mission.navCanFile && (
             <div className="page-break-inside-avoid">
-              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">NAV Canada Authorization File</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase border-b border-slate-200 mb-2">{t('NAV Canada Authorization File', lang)}</h3>
               <img src={mission.navCanFile} alt="NAV Canada File" className="w-full max-h-[500px] object-contain border border-slate-300 rounded p-2" />
             </div>
           )}
@@ -1437,7 +1591,7 @@ const PrintMissionView = ({ mission, onBack }) => {
   );
 };
 
-const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onManageLists, onBackup, onRestore, onPrint, scrollRef }) => {
+const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExportFull, onManageLists, onBackup, onRestore, onPrint, scrollRef, lang, onToggleLang }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -1466,41 +1620,42 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
             <Crosshair className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-400 shrink-0 mt-0.5 sm:mt-1" />
             <div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-wider leading-tight">
-                DFO RPAS FLIGHT LOG
+                {t('DFO RPAS FLIGHT LOG', lang)}
               </h1>
               <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest">
-                Fishery Officer Field Unit
+                {t('Fishery Officer Field Unit', lang)}
               </p>
             </div>
           </div>
         </header>
         
         <div className="bg-slate-300 p-4 rounded-md shadow-sm text-[10px] text-slate-700 uppercase font-bold tracking-wider space-y-1">
-          <p>Compliant with CARs Part IX - TC and DFO Policy Draft</p>
-          <p>Regional RPAS program coordinator: Philip Bouma</p>
-          <p>Chief of Enforcement Operations: Ulysse Brideau</p>
+          <p>{t('Compliant with CARs Part IX - TC and DFO Policy Draft', lang)}</p>
+          <p>{t('Regional RPAS program coordinator: Philip Bouma', lang)}</p>
+          <p>{t('Chief of Enforcement Operations: Ulysse Brideau', lang)}</p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <button onClick={onBackup} className="w-full bg-white hover:bg-slate-50 text-slate-700 py-3 rounded-md font-bold flex flex-row items-center justify-center text-xs gap-2 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> Backup Data</button>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> CSV Report</button>
-          <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> Full Report</button>
-          <button onClick={onManageLists} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><List className="h-4 w-4 text-indigo-600" /> Saved Lists</button>
-          <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
-            <Upload className="h-4 w-4 text-amber-600" /> Restore Data
-            <input type="file" accept=".json" onChange={onRestore} className="hidden" />
-          </label>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <button onClick={onExport} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><FileText className="h-4 w-4 text-emerald-600" /> {t('CSV Report', lang)}</button>
+        <button onClick={onExportFull} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Globe className="h-4 w-4 text-purple-600" /> {t('Full Report', lang)}</button>
+        <button onClick={onManageLists} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><List className="h-4 w-4 text-indigo-600" /> {t('Saved Lists', lang)}</button>
+        <button onClick={onBackup} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm"><Database className="h-4 w-4 text-blue-600" /> {t('Backup Data', lang)}</button>
+        <label className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm cursor-pointer">
+          <Upload className="h-4 w-4 text-amber-600" /> {t('Restore Data', lang)}
+          <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+        </label>
+        <button onClick={onToggleLang} className="bg-white hover:bg-slate-50 text-slate-700 px-2 py-3 rounded-md font-bold flex flex-col items-center justify-center text-xs gap-1 border border-slate-200 shadow-sm">
+          <Globe className="h-4 w-4 text-teal-600" /> {lang === 'en' ? 'Français' : 'English'}
+        </button>
       </div>
 
       <div className="flex gap-3 mt-4">
-        <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> NEW MISSION</button>
+        <button onClick={onCreateNew} className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-4 rounded-md shadow-md font-bold flex items-center justify-center gap-2 text-md"><Plus className="h-5 w-5" /> {t('NEW MISSION', lang)}</button>
       </div>
 
       <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
-        Note: Backup your data often
+        {t('Note: Backup your data often', lang)}
       </div>
 
       {/* SEARCH BAR */}
@@ -1508,7 +1663,7 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
          <input 
            type="text" 
-           placeholder="Search all mission data..." 
+           placeholder={t("Search all mission data...", lang)} 
            className="w-full pl-10 p-3 rounded-md border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
            value={searchTerm}
            onChange={(e) => setSearchTerm(e.target.value)}
@@ -1516,12 +1671,12 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
       </div>
 
       <div className="border-b border-slate-200 pb-2 flex justify-between items-end">
-        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wide">Recorded Missions</h2>
-        <span className="text-xs text-slate-400">{filteredMissions.length} RECORDS</span>
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wide">{t('Recorded Missions', lang)}</h2>
+        <span className="text-xs text-slate-400">{filteredMissions.length} {t('RECORDS', lang)}</span>
       </div>
 
       {filteredMissions.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-md border-2 border-dashed border-slate-200"><Crosshair className="h-12 w-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500 font-medium">No mission data found.</p></div>
+        <div className="text-center py-16 bg-white rounded-md border-2 border-dashed border-slate-200"><Crosshair className="h-12 w-12 text-slate-300 mx-auto mb-3" /><p className="text-slate-500 font-medium">{t('No mission data found.', lang)}</p></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
           {filteredMissions.map((mission, index) => {
@@ -1530,7 +1685,7 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
             return (
               <div key={mission.id} className="bg-white rounded-md shadow-sm border border-slate-200 overflow-hidden flex flex-col sm:flex-row">
                 <div className="bg-slate-100 w-full sm:w-32 h-32 sm:h-auto flex-shrink-0 flex items-center justify-center border-b sm:border-b-0 sm:border-r border-slate-200">
-                  {mission.sketch ? <img src={mission.sketch} alt="Map" className="w-full h-full object-cover" /> : <div className="text-slate-300 flex flex-col items-center"><ImageIcon className="h-8 w-8 mb-1" /><span className="text-[10px] font-bold uppercase">No Map</span></div>}
+                  {mission.sketch ? <img src={mission.sketch} alt="Map" className="w-full h-full object-cover" /> : <div className="text-slate-300 flex flex-col items-center"><ImageIcon className="h-8 w-8 mb-1" /><span className="text-[10px] font-bold uppercase">{t('No Map', lang)}</span></div>}
                 </div>
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
@@ -1547,9 +1702,9 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 mt-auto">
-                    <button onClick={() => onEdit(mission)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold uppercase border border-slate-200 flex items-center justify-center gap-1 transition-colors"><Edit2 className="h-3 w-3" /> Edit</button>
-                    <button onClick={() => onPrint(mission)} className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded text-xs font-bold uppercase border border-emerald-200 flex items-center justify-center gap-1 transition-colors"><Printer className="h-3 w-3" /> Print</button>
-                    <button onClick={() => onDelete(mission.id)} className="flex-1 bg-white hover:bg-red-50 text-red-600 py-2 rounded text-xs font-bold uppercase border border-red-100 flex items-center justify-center gap-1 transition-colors"><Trash2 className="h-3 w-3" /> Delete</button>
+                    <button onClick={() => onEdit(mission)} className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold uppercase border border-slate-200 flex items-center justify-center gap-1 transition-colors"><Edit2 className="h-3 w-3" /> {t('Edit', lang)}</button>
+                    <button onClick={() => onPrint(mission)} className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded text-xs font-bold uppercase border border-emerald-200 flex items-center justify-center gap-1 transition-colors"><Printer className="h-3 w-3" /> {t('Print', lang)}</button>
+                    <button onClick={() => onDelete(mission.id)} className="flex-1 bg-white hover:bg-red-50 text-red-600 py-2 rounded text-xs font-bold uppercase border border-red-100 flex items-center justify-center gap-1 transition-colors"><Trash2 className="h-3 w-3" /> {t('Delete', lang)}</button>
                   </div>
                 </div>
               </div>
@@ -1562,6 +1717,7 @@ const Dashboard = ({ missions, onCreateNew, onDelete, onEdit, onExport, onExport
 };
 
 export default function App() {
+  const [lang, setLang] = useState(() => localStorage.getItem('dfo_app_lang') || 'en');
   const [view, setView] = useState('dashboard');
   const [missions, setMissions] = useState([]);
   const [editingMission, setEditingMission] = useState(null);
@@ -1569,6 +1725,12 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
   const dashboardScrollRef = useRef(0);
+
+  const toggleLang = () => {
+    const newLang = lang === 'en' ? 'fr' : 'en';
+    setLang(newLang);
+    localStorage.setItem('dfo_app_lang', newLang);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -1642,13 +1804,13 @@ export default function App() {
       setMissions(allMissions);
       setEditingMission(null);
       setView('dashboard');
-    } catch (error) { alert("Failed to save."); }
+    } catch (error) { alert(t("Failed to save.", lang)); }
   };
 
   const handleEditStart = (mission) => { setEditingMission(mission); setView('form'); };
 
   const handleDeleteMission = async (id) => {
-    if (confirm("Are you sure you want to delete this mission record?")) {
+    if (confirm(t("Are you sure you want to delete this mission record?", lang))) {
       await db.missions.delete(id);
       const allMissions = await db.missions.toArray();
       setMissions(allMissions);
@@ -1663,7 +1825,8 @@ export default function App() {
       try {
         const data = JSON.parse(event.target.result);
         if (data.missions && Array.isArray(data.missions)) {
-          if(confirm(`Restore ${data.missions.length} missions? This will overwrite current data.`)) {
+          const confirmMsg = lang === 'fr' ? `Restaurer ${data.missions.length} missions ? Cela écrasera les données actuelles.` : `Restore ${data.missions.length} missions? This will overwrite current data.`;
+          if(confirm(confirmMsg)) {
              await db.transaction('rw', db.missions, db.settings, async () => {
                 await db.missions.clear();
                 await db.missions.bulkPut(data.missions);
@@ -1674,10 +1837,10 @@ export default function App() {
              });
              const allMissions = await db.missions.toArray();
              setMissions(allMissions);
-             alert("Restored successfully.");
+             alert(t("Restored successfully.", lang));
           }
-        } else alert("Invalid backup file.");
-      } catch (err) { alert("Error reading file."); }
+        } else alert(t("Invalid backup file.", lang));
+      } catch (err) { alert(t("Error reading file.", lang)); }
     };
     reader.readAsText(file);
     e.target.value = null; 
@@ -1691,13 +1854,15 @@ export default function App() {
           onCreateNew={() => { setEditingMission(null); setView('form'); }} 
           onEdit={handleEditStart}
           onDelete={handleDeleteMission}
-          onExport={() => exportToCSV(missions)}
-          onExportFull={() => exportToHTML(missions)}
+          onExport={() => exportToCSV(missions, lang)}
+          onExportFull={() => exportToHTML(missions, lang)}
           onManageLists={() => setView('saved-lists')}
           onBackup={() => backupData(missions, lists)}
           onRestore={handleRestore}
           onPrint={(mission) => { setEditingMission(mission); setView('print'); }}
           scrollRef={dashboardScrollRef}
+          lang={lang}
+          onToggleLang={toggleLang}
         />
       )}
       {view === 'form' && (
@@ -1708,12 +1873,14 @@ export default function App() {
           lists={lists}
           onUpdateList={handleUpdateList}
           onUpdateBulkLists={handleUpdateBulkLists}
+          lang={lang}
         />
       )}
       {view === 'print' && (
         <PrintMissionView 
           mission={editingMission} 
           onBack={() => { setView('dashboard'); }} 
+          lang={lang}
         />
       )}
       {view === 'saved-lists' && (
@@ -1721,13 +1888,14 @@ export default function App() {
           lists={lists} 
           onUpdateBulkLists={handleUpdateBulkLists} 
           onBack={() => setView('dashboard')} 
+          lang={lang}
         />
       )}
       
       {/* Android Install Prompt */}
       {deferredPrompt && (
         <button onClick={handleInstall} className="fixed bottom-4 right-4 z-50 bg-emerald-900 text-white px-4 py-3 rounded-lg shadow-2xl font-bold flex items-center gap-2 hover:bg-emerald-950 transition-all border-2 border-emerald-400 animate-bounce">
-          <Download className="h-5 w-5" /> INSTALL APP
+          <Download className="h-5 w-5" /> {t("INSTALL APP", lang)}
         </button>
       )}
 
@@ -1735,11 +1903,16 @@ export default function App() {
       {showIosPrompt && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800 text-white p-4 shadow-2xl flex items-start gap-3 border-t border-slate-700" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
           <div className="flex-1">
-            <p className="font-bold text-sm mb-1">Install DFO RPAS Log</p>
-            <p className="text-slate-300 text-xs">To install this app on your iPhone, tap the <strong>Share</strong> icon below, then select <strong>Add to Home Screen</strong>.</p>
+            <p className="font-bold text-sm mb-1">{t("Install DFO RPAS Log", lang)}</p>
+            <p className="text-slate-300 text-xs">
+               {t("To install this app on your iPhone, tap the ", lang)} 
+               <strong>Share</strong> 
+               {t(" icon below, then select ", lang)} 
+               <strong>{t("Add to Home Screen", lang)}</strong>.
+            </p>
           </div>
           <button onClick={() => setShowIosPrompt(false)} className="text-slate-400 hover:text-white px-2 font-bold uppercase text-xs">
-            CLOSE
+            {t("CLOSE", lang)}
           </button>
         </div>
       )}
